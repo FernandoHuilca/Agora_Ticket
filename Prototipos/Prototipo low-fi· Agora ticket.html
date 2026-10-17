@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Prototipo low-fi · Casa de la Música</title>
+<link href="https://fonts.googleapis.com/css2?family=Patrick+Hand&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#fff;--fg:#222;--mut:#777;--line:#222;--fill:#e6e6e6;--fill2:#f3f3f3;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+
+:root{color-scheme:light}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--fg);font:18px 'Patrick Hand','Comic Sans MS',cursive,sans-serif}
+.proto{background:var(--fill);border-bottom:2px dashed var(--line);padding:6px 14px;font-size:15px;display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+select,input,textarea,button{font:inherit;color:var(--fg);background:var(--bg);border:2px solid var(--line);border-radius:6px;padding:6px 10px}
+button{cursor:pointer;background:var(--fill)}button.pri{background:var(--fg);color:var(--bg)}
+header{display:flex;align-items:center;gap:16px;padding:10px 14px;border-bottom:2px solid var(--line);flex-wrap:wrap}
+.logo{border:2px solid var(--line);padding:4px 12px;font-weight:bold;cursor:pointer}
+nav{display:flex;gap:14px;flex:1;flex-wrap:wrap}nav a{cursor:pointer;text-decoration:underline}
+main{max-width:980px;margin:0 auto;padding:18px 14px}
+h1,h2,h3{margin:.3em 0}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:14px}
+.card{border:2px solid var(--line);border-radius:8px;padding:10px;cursor:pointer}
+.ph{height:110px;border:2px solid var(--line);background:linear-gradient(to top right,transparent calc(50% - 1px),var(--line),transparent calc(50% + 1px)),linear-gradient(to bottom right,transparent calc(50% - 1px),var(--line),transparent calc(50% + 1px));margin-bottom:8px}
+.tag{display:inline-block;border:2px solid var(--line);border-radius:12px;padding:0 8px;font-size:14px;margin-right:4px}
+.row{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin:10px 0}
+.box{border:2px solid var(--line);border-radius:8px;padding:12px;margin:10px 0}
+.note{border:2px dashed var(--mut);background:var(--fill2);padding:8px;color:var(--mut);font-size:15px;margin:8px 0}
+label{display:block;margin:8px 0 2px}input,select,textarea{width:100%}
+.form{max-width:380px;margin:0 auto}
+table{width:100%;border-collapse:collapse}th,td{border:2px solid var(--line);padding:6px;text-align:left}th{background:var(--fill)}
+.wrap{overflow-x:auto}
+.qr{width:140px;height:140px;border:2px solid var(--line);background:repeating-conic-gradient(var(--fg) 0 25%,var(--bg) 0 50%) 0 0/28px 28px;display:grid;place-items:center}
+.qr b{background:var(--bg);padding:2px 6px;border:2px solid var(--line)}
+.cam{height:240px;border:2px solid var(--line);background:var(--fill);display:grid;place-items:center;position:relative}
+.cam i{width:150px;height:150px;border:3px dashed var(--line)}
+.res{border:3px solid var(--line);padding:16px;text-align:center;font-size:24px;margin-top:12px}
+.res.ok{background:var(--fg);color:var(--bg)}.res.no{background:var(--fill);border-style:dashed}
+.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px}.stats div{border:2px solid var(--line);padding:10px;text-align:center}
+.stats b{font-size:30px;display:block}
+</style>
+</head>
+<body>
+<div class="proto">Simular rol:
+<select id="role" style="width:auto" onchange="setRole(this.value)">
+<option value="guest">Visitante (sin sesión)</option><option value="user">Usuario logueado</option><option value="scan">Escaneador</option><option value="admin">Administrador / Organizador</option></select>
+<span style="color:var(--mut)">(solo para el prototipo)</span></div>
+<header id="hdr"></header>
+<main id="app"></main>
+<script>
+const EV=[
+{id:1,n:'Concierto de Jazz',f:'Sáb 24 Oct · 19:00 - 22:00',p:15,c:80,t:200,a:0},
+{id:2,n:'Noche de Rock Local',f:'Vie 30 Oct · 20:00 - 23:00',p:20,c:12,t:150,a:1},
+{id:3,n:'Recital de Piano',f:'Dom 1 Nov · 17:00 - 19:00',p:0,c:45,t:100,a:0},
+{id:4,n:'Taller de Percusión',f:'Mié 4 Nov · 16:00 - 18:00',p:0,c:0,t:30,a:0},
+{id:5,n:'Festival Electrónico',f:'Sáb 7 Nov · 22:00 - 04:00',p:35,c:210,t:400,a:1},
+{id:6,n:'Orquesta Juvenil',f:'Dom 15 Nov · 11:00 - 13:00',p:5,c:60,t:120,a:0}];
+let S={role:'guest',view:'home',ev:null,pend:null,q:'',fl:'all'};
+const $=id=>document.getElementById(id);
+const price=e=>e.p?'$'+e.p:'Gratis';
+function go(v,ev,pend){S.view=v;if(ev)S.ev=EV.find(x=>x.id==ev);if(pend!==undefined)S.pend=pend;render();scrollTo(0,0)}
+function setRole(r){S.role=r;go(r=='scan'?'scan':r=='admin'?'admin':'home')}
+function header(){
+const r=S.role,L=(v,t)=>`<a onclick="go('${v}')">${t}</a>`;
+let n=r=='scan'?L('scan','Escáner'):L('home','Cartelera')+(r=='user'?L('tickets','Mis entradas'):'')+(r=='admin'?L('admin','Panel')+L('orgList','Eventos programados')+L('orgNew','Crear evento'):'');
+let right=r=='guest'?`<button onclick="go('login')">Iniciar sesión</button><button class="pri" onclick="go('reg')">Registrarse</button>`:`<span class="tag">Rol: ${{user:'Usuario',scan:'Escaneador',admin:'Administrador'}[r]}</span><button onclick="setRole('guest')">Salir</button>`;
+$('hdr').innerHTML=`<div class="logo" onclick="go('${r=='scan'?'scan':'home'}')">[LOGO]</div><nav>${n}</nav><div class="row" style="margin:0">${right}</div>`}
+const V={
+home(){let l=EV.filter(e=>e.n.toLowerCase().includes(S.q.toLowerCase())&&(S.fl=='all'||(S.fl=='free'&&!e.p)||(S.fl=='paid'&&e.p)||(S.fl=='18'&&e.a)));
+return `<h1>Cartelera de eventos</h1><div class="note">Pública: se puede explorar sin iniciar sesión.</div>
+<div class="row"><input style="max-width:260px" placeholder="Buscar evento" value="${S.q}" oninput="S.q=this.value;render(1)"><select style="width:auto" onchange="S.fl=this.value;render()">${[['all','Todos'],['free','Gratuitos'],['paid','De pago'],['18','Solo +18']].map(o=>`<option value="${o[0]}" ${S.fl==o[0]?'selected':''}>${o[1]}</option>`).join('')}</select></div>
+<div class="grid">${l.map(e=>`<div class="card" onclick="go('detail',${e.id})"><div class="ph"></div><h3>${e.n}</h3><div>${e.f}</div><div class="row" style="margin:6px 0"><span class="tag">${price(e)}</span>${e.a?'<span class="tag">+18</span>':''}${e.t-e.c?'':'<span class="tag">AGOTADO</span>'}</div><div style="font-size:15px">Cupos: ${e.t} · Disponibles: ${e.t-e.c}</div></div>`).join('')||'<p>Sin resultados.</p>'}</div>`},
+detail(){const e=S.ev,left=e.t-e.c;return `<a onclick="go('home')">← Volver a cartelera</a><div class="row" style="align-items:flex-start"><div style="flex:1;min-width:260px"><div class="ph" style="height:220px"></div></div><div style="flex:1;min-width:260px"><h1>${e.n}</h1><p>Fecha y hora: ${e.f}<br>Lugar: Casa de la Música, Sala principal</p>
+<div class="row"><span class="tag">${price(e)}</span>${e.a?'<span class="tag">Solo mayores de edad</span>':''}</div><div class="box">Cupos totales: ${e.t}<br>Cupos disponibles: <b>${left}</b></div>
+<div class="note">Reglas que valida el sistema: ${e.a?'mayoría de edad · ':''}cupos disponibles${e.p?' · pago confirmado':' · límite de tickets por persona'}</div>
+<button class="pri" ${left?'':'disabled'} onclick="getTicket()">${left?(e.p?'Comprar entrada':'Reservar entrada gratis'):'Agotado'}</button></div></div>
+<h3>Descripción</h3><div class="box">Texto descriptivo del evento…<br>▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒<br>▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒</div>`},
+login(){return `<div class="form"><h1>Iniciar sesión</h1>${S.pend?'<div class="note">Debes iniciar sesión para continuar con tu entrada.</div>':''}<label>Correo</label><input placeholder="correo@ejemplo.com"><label>Contraseña</label><input type="password" placeholder="••••••"><div class="row"><button class="pri" onclick="S.role='user';$('role').value='user';go(S.pend||'home',0,null)">Entrar</button></div><p>¿No tienes cuenta? <a onclick="go('reg')" style="text-decoration:underline;cursor:pointer">Regístrate</a></p></div>`},
+reg(){return `<div class="form"><h1>Crear cuenta</h1><label>Nombre completo</label><input><label>Correo</label><input><label>Fecha de nacimiento</label><input type="date"><div class="note">Se usa para validar eventos +18.</div><label>Contraseña</label><input type="password"><label>Confirmar contraseña</label><input type="password"><div class="row"><button class="pri" onclick="S.role='user';$('role').value='user';go(S.pend||'home',0,null)">Registrarme</button></div></div>`},
+pay(){const e=S.ev;return `<h1>Pago</h1><div class="note">Requiere sesión. El sistema ya validó edad y cupos.</div><div class="row" style="align-items:flex-start"><div class="box" style="flex:1;min-width:240px"><h3>Resumen</h3>${e.n}<br>${e.f}<hr><b>Total: $${e.p}</b></div><div class="box" style="flex:1;min-width:240px"><h3>Datos de pago</h3><label>Número de tarjeta</label><input placeholder="0000 0000 0000 0000"><div class="row"><div style="flex:1"><label>Vence</label><input placeholder="MM/AA"></div><div style="flex:1"><label>CVV</label><input placeholder="000"></div></div><button class="pri" onclick="go('ok')">Pagar $${e.p}</button><button onclick="go('detail')">Cancelar</button></div></div>`},
+ok(){return `<div class="form" style="text-align:center"><h1>¡Listo!</h1><p>${S.ev.p?'Pago confirmado. ':''}Tu entrada fue emitida.</p><div class="qr" style="margin:auto"><b>QR</b></div><p>${S.ev.n}<br><span class="tag">Estado: Vigente</span></p><button class="pri" onclick="go('tickets')">Ver mis entradas</button></div>`},
+tickets(){return `<h1>Mis entradas</h1><div class="grid">${[[EV[2],'Vigente'],[EV[0],'Vigente'],[EV[5],'Usada']].map(t=>`<div class="card" onclick="S.st='${t[1]}';go('tk',${t[0].id})"><div class="row" style="margin:0"><div class="qr" style="width:80px;height:80px;background-size:16px 16px"></div><div><h3>${t[0].n}</h3>${t[0].f}<br><span class="tag">${t[1]}</span></div></div></div>`).join('')}</div>`},
+tk(){const e=S.ev;return `<a onclick="go('tickets')">← Mis entradas</a><div class="form" style="text-align:center"><h1>${e.n}</h1><p>${e.f}</p><div class="qr" style="width:220px;height:220px;margin:auto;background-size:44px 44px"><b>QR único</b></div><p>Titular: Nombre Apellido<br>ID entrada: #A1B2-0001</p><div class="box">Estado del código: <span class="tag" style="${S.st=='Usada'?'border-style:dashed':'background:var(--fill)'}">${S.st=='Usada'?'Usada':'Vigente'}</span></div>${S.st=='Usada'?'<div class="note">Esta entrada ya fue escaneada y no permite un nuevo ingreso.</div>':''}<button>Descargar QR</button></div>`},
+orgList(){return `<div class="row" style="justify-content:space-between"><h1>Eventos programados</h1><button class="pri" onclick="go('orgNew')">+ Crear evento</button></div><div class="wrap"><table><tr><th>Evento</th><th>Fecha</th><th>Tipo</th><th>Cupos</th><th>Inscritos</th><th>Disponibles</th><th>Acciones</th></tr>${EV.map(e=>`<tr><td>${e.n}</td><td>${e.f}</td><td>${price(e)}${e.a?' · +18':''}</td><td>${e.t}</td><td>${e.c}</td><td>${e.t-e.c}</td><td><button onclick="go('orgNew')">Editar</button> <button>Ver inscritos</button> <button>Cancelar</button></td></tr>`).join('')}</table></div>`},
+orgNew(){return `<div class="form" style="max-width:520px"><h1>Crear evento</h1><label>Nombre</label><input><label>Descripción</label><textarea rows="3"></textarea><div class="row"><div style="flex:1"><label>Fecha</label><input type="date"></div><div style="flex:1"><label>Hora de inicio</label><input type="time"></div><div style="flex:1"><label>Hora de fin</label><input type="time"></div></div><label>Cupos (aforo máximo)</label><input type="number"><label>Tipo</label><select onchange="$('pr').style.display=this.value=='p'?'block':'none'"><option value="g">Gratuito</option><option value="p">De pago</option></select><div id="pr" style="display:none"><label>Precio</label><input type="number"></div><div class="note">Si es gratuito: definir límite de tickets por persona.</div><label>Tickets máx. por persona</label><input type="number" value="2"><label><input type="checkbox" style="width:auto"> Restringido a mayores de edad</label><label>Imagen del evento</label><div class="ph"></div><div class="row"><button class="pri" onclick="go('orgList')">Publicar evento</button><button onclick="go('orgList')">Cancelar</button></div></div>`},
+scan(){return `<h1>Escáner de entradas</h1><div class="row"><label style="margin:0">Evento de hoy:</label><select style="width:auto"><option>Concierto de Jazz</option><option>Recital de Piano</option></select></div><div class="cam"><i></i><span style="position:absolute;bottom:8px;color:var(--mut)">[ vista de cámara ]</span></div><div class="note">Simular lectura de un código:</div><div class="row"><button onclick="scanR('ok')">Válida</button><button onclick="scanR('used')">Ya usada</button><button onclick="scanR('other')">Otro evento</button><button onclick="scanR('bad')">Inválida</button></div><div id="res"></div>`},
+admin(){return `<div class="row" style="justify-content:space-between"><h1>Panel de administración</h1><div class="row" style="margin:0"><button onclick="go('orgList')">Eventos programados</button><button class="pri" onclick="go('orgNew')">+ Crear evento</button></div></div><div class="stats"><div><b>6</b>Eventos activos</div><div><b>1.240</b>Usuarios</div><div><b>3.870</b>Entradas emitidas</div><div><b>$12.4k</b>Ingresos</div></div><h2>Usuarios</h2><div class="wrap"><table><tr><th>Nombre</th><th>Correo</th><th>Rol</th><th>Acciones</th></tr>${[['Ana P.','Usuario'],['Luis R.','Administrador'],['Marta G.','Escaneador']].map(u=>`<tr><td>${u[0]}</td><td>correo@ej.com</td><td><select style="width:auto">${['Usuario','Escaneador','Administrador'].map(o=>`<option ${o==u[1]?'selected':''}>${o}</option>`).join('')}</select></td><td><button>Suspender</button></td></tr>`).join('')}</table></div><h2>Eventos recientes</h2><div class="wrap"><table><tr><th>Evento</th><th>Creado por</th><th>Estado</th><th></th></tr>${EV.slice(0,3).map(e=>`<tr><td>${e.n}</td><td>Luis R.</td><td>Publicado</td><td><button>Ver</button> <button>Bajar</button></td></tr>`).join('')}</table></div>`}
+};
+function getTicket(){const e=S.ev;if(S.role=='guest'){S.pend=e.p?'pay':'ok';go('login')}else if(S.role=='user')go(e.p?'pay':'ok');else alert('Prototipo: usa el rol Usuario para obtener entradas.')}
+function scanR(k){const m={ok:['ok','ENTRADA VÁLIDA<br><small>Acceso permitido · marcada como usada</small>'],used:['no','YA USADA<br><small>Escaneada hoy a las 19:02</small>'],other:['no','OTRO EVENTO<br><small>La entrada es de otro evento</small>'],bad:['no','INVÁLIDA<br><small>El código no existe</small>']}[k];$('res').innerHTML=`<div class="res ${m[0]}">${m[1]}</div>`}
+function render(keep){header();const a=document.activeElement,pos=a&&a.selectionStart;$('app').innerHTML=V[S.view]();if(keep){const i=$('app').querySelector('input');if(i){i.focus();i.setSelectionRange(pos,pos)}}}
+render();
+</script>
+</body>
+</html>
