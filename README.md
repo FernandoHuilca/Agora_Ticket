@@ -3,6 +3,9 @@
 Aplicación web monolítica para la administración de eventos culturales, venta de tickets con validación QR y comunicación en tiempo real mediante WebSockets.
 
 ## Stack Tecnológico
+
+La explicación del módulo de cuentas está en [users/README.md](users/README.md).
+
 - **Backend y Renderizado:** Python 3.12 + Django
 - **Tiempo Real (WebSockets):** Django Channels + Daphne (ASGI)
 - **Base de Datos:** PostgreSQL (Neon Cloud)
