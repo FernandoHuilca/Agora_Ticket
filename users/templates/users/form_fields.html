@@ -1,0 +1,38 @@
+{% if form.non_field_errors %}
+<div class="alert error" role="alert">{{ form.non_field_errors }}</div>
+{% endif %}
+{% for field in form %}
+  {% if field.is_hidden %}
+    {{ field }}{{ field.errors }}
+  {% else %}
+  <div class="field">
+    {% if field.name == 'date_of_birth' %}
+    <fieldset class="birth-date">
+      <legend>{{ field.label }}{% if field.field.required %}<span class="required" aria-hidden="true">*</span>{% endif %}</legend>
+      <div class="date-selects">{{ field }}</div>
+    </fieldset>
+    {% else %}
+    <label for="{{ field.id_for_label }}">{{ field.label }}{% if field.field.required %}<span class="required" aria-hidden="true">*</span>{% endif %}</label>
+    {% if field.field.widget.input_type == 'password' %}
+    <div class="password-field">
+      {{ field }}
+      <button type="button" class="password-toggle" aria-label="Mostrar contraseña" aria-controls="{{ field.auto_id }}" aria-pressed="false" hidden>
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12Z" />
+          <circle cx="12" cy="12" r="3" />
+          <path class="eye-slash" d="M3 3 21 21" hidden />
+        </svg>
+      </button>
+    </div>
+    {% else %}
+    {{ field }}
+    {% endif %}
+    {% endif %}
+    <div class="field-feedback{% if field.help_text %} has-help{% endif %}{% if field.errors %} has-error{% endif %}">
+      {% if field.errors %}<div id="{{ field.auto_id }}_error" role="alert">{{ field.errors }}</div>{% endif %}
+      <div class="errorlist client-error" id="{{ field.auto_id }}_client_error" aria-live="polite" hidden></div>
+      {% if field.help_text %}<div class="helptext" id="{{ field.auto_id }}_helptext">{{ field.help_text|safe }}</div>{% endif %}
+    </div>
+  </div>
+  {% endif %}
+{% endfor %}

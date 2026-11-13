@@ -1,0 +1,12 @@
+{% extends 'users/base.html' %}
+{% block title %}Crear cuenta | Ágora Ticket{% endblock %}
+{% block content %}
+<h1>Crear cuenta</h1>
+<p>Regístrate para obtener tus entradas.</p>
+<form method="post">
+  {% csrf_token %}
+  {% include "users/form_fields.html" %}
+  <button type="submit">Crear cuenta</button>
+</form>
+<p>¿Ya tienes cuenta? <a href="{% url 'users:login' %}">Inicia sesión</a>.</p>
+{% endblock %}

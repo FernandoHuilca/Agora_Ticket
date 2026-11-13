@@ -1,0 +1,11 @@
+{% extends 'users/base.html' %}
+{% block title %}Acceso denegado | Ágora Ticket{% endblock %}
+{% block content %}
+<h1>Acceso denegado</h1>
+<p>No tienes permisos para acceder a esta página o realizar esta acción.</p>
+{% if user.is_authenticated %}
+<p><a href="{% url 'users:dashboard' %}">Volver a mi panel</a></p>
+{% else %}
+<p><a href="{% url 'users:login' %}">Iniciar sesión</a></p>
+{% endif %}
+{% endblock %}
