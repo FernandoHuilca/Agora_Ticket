@@ -1,0 +1,14 @@
+{% extends 'users/base.html' %}
+{% block title %}Iniciar sesión | Ágora Ticket{% endblock %}
+{% block content %}
+<h1>Iniciar sesión</h1>
+<p>Usa tu correo electrónico y contraseña.</p>
+<form method="post">
+  {% csrf_token %}
+  {% include "users/form_fields.html" %}
+  {% if next %}<input type="hidden" name="next" value="{{ next }}">{% endif %}
+  <button type="submit">Entrar</button>
+</form>
+<p><a href="{% url 'users:password_reset' %}">¿Olvidaste tu contraseña?</a></p>
+<p>¿No tienes cuenta? <a href="{% url 'users:register' %}">Regístrate</a>.</p>
+{% endblock %}

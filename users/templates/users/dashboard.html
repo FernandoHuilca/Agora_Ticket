@@ -1,0 +1,13 @@
+{% extends 'users/base.html' %}
+{% block title %}Mi panel | Ágora Ticket{% endblock %}
+{% block content %}
+<h1>Hola, {{ user.first_name|default:user.email }}</h1>
+<p>Tu sesión está iniciada.</p>
+<dl>
+  <dt>Nombres</dt><dd>{{ user.first_name|default:'Sin completar' }}</dd>
+  <dt>Apellidos</dt><dd>{{ user.last_name|default:'Sin completar' }}</dd>
+  <dt>Fecha de nacimiento</dt><dd>{{ user.date_of_birth|date:'d/m/Y'|default:'Sin completar' }}</dd>
+  <dt>Correo electrónico</dt><dd>{{ user.email }}</dd>
+  <dt>Rol</dt><dd>{{ user.get_role_display }}</dd>
+</dl>
+{% endblock %}
