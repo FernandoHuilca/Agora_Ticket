@@ -1,6 +1,10 @@
 import os
 from pathlib import Path
 from dotenv import load_dotenv
+import os
+import sys
+from pathlib import Path
+from dotenv import load_dotenv
 
 load_dotenv()
 
@@ -77,6 +81,12 @@ DATABASES = {
         },
     }
 }
+# Usar SQLite en memoria solo para ejecutar pruebas
+if 'test' in sys.argv:
+    DATABASES['default'] = {
+        'ENGINE': 'django.db.backends.sqlite3',
+        'NAME': ':memory:',
+    }
 
 AUTH_USER_MODEL = 'users.User'
 AUTHENTICATION_BACKENDS = ['users.backends.AccountBackend']
