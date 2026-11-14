@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Mis Eventos — Ágora Ticket</title>
+</head>
+<body>
+    <h1>Gestión de Mis Eventos</h1>
+    <p>
+        <a href="{% url 'events:org_new' %}">+ Crear nuevo evento</a> |
+        <a href="{% url 'events:home' %}">Ir a Cartelera Pública</a>
+    </p>
+
+    <form method="get">
+        <label for="status">Filtrar por estado:</label>
+        <select name="status" id="status">
+            <option value="">Todos</option>
+            {% for val, label in status_choices %}
+                <option value="{{ val }}" {% if current_status == val %}selected{% endif %}>{{ label }}</option>
+            {% endfor %}
+        </select>
+        <button type="submit">Filtrar</button>
+    </form>
+
+    <table>
+        <thead>
+            <tr>
+                <th>Evento</th>
+                <th>Fecha</th>
+                <th>Estado</th>
+                <th>Disponibles / Aforo</th>
+                <th>Acciones</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for event in page_obj %}
+            <tr>
+                <td><a href="{% url 'events:detail' event.pk %}">{{ event.name }}</a></td>
+                <td>{{ event.start_date|date:"d/m/Y H:i" }}</td>
+                <td>{{ event.get_status_display }}</td>
+                <td>{{ event.available_tickets }} / {{ event.capacity }}</td>
+                <td>
+                    <a href="{% url 'events:edit' event.pk %}">Editar</a> |
+                    <a href="{% url 'events:attendees' event.pk %}">Inscritos</a> |
+                    <a href="{% url 'events:delete' event.pk %}">Eliminar</a>
+                </td>
+            </tr>
+            {% empty %}
+            <tr>
+                <td colspan="5">Aún no has registrado eventos.</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</body>
+</html>

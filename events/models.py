@@ -1,4 +1,5 @@
 import uuid
+from datetime import timedelta
 from decimal import Decimal
 from django.conf import settings
 from django.core.exceptions import ValidationError
@@ -6,10 +7,12 @@ from django.core.validators import MinLengthValidator, MinValueValidator
 from django.db import models
 from django.db.models import Q
 
-from .validators import validate_event_image
+from .validators import validate_event_image, sanitize_and_optimize_image
 
 
 class Event(models.Model):
+    MIN_DURATION_MINUTES = 30
+    MAX_DURATION_HOURS = 24
     class Status(models.TextChoices):
         PENDING = 'PENDING', 'Pendiente de moderación'
         APPROVED = 'APPROVED', 'Aprobado y publicado'
@@ -114,7 +117,7 @@ class Event(models.Model):
     status = models.CharField(
         max_length=15,
         choices=Status.choices,
-        default=Status.PENDING,
+        default=Status.APPROVED,
         db_index=True,
         verbose_name='Estado de publicación'
     )
@@ -158,8 +161,19 @@ class Event(models.Model):
         super().clean()
         errors = {}
 
-        if self.start_date and self.end_date and self.end_date <= self.start_date:
-            errors['end_date'] = 'La fecha de finalización debe ser posterior a la fecha de inicio.'
+        if self.start_date and self.end_date:
+            if self.end_date <= self.start_date:
+                errors['end_date'] = 'La fecha de finalización debe ser posterior a la fecha de inicio.'
+            else:
+                duration = self.end_date - self.start_date
+                if duration < timedelta(minutes=self.MIN_DURATION_MINUTES):
+                    errors['end_date'] = (
+                        f'El evento debe tener una duración mínima de {self.MIN_DURATION_MINUTES} minutos.'
+                    )
+                elif duration > timedelta(hours=self.MAX_DURATION_HOURS):
+                    errors['end_date'] = (
+                        f'La duración de un evento individual no puede exceder las {self.MAX_DURATION_HOURS} horas.'
+                    )
 
         if self.is_free and self.price and self.price > Decimal('0.00'):
             errors['price'] = 'Un evento gratuito debe tener precio $0.00.'
@@ -179,4 +193,9 @@ class Event(models.Model):
         if self._state.adding and self.available_tickets is None:
             self.available_tickets = self.capacity
         self.full_clean()
+
+        # Si hay una imagen nueva en memoria aún no guardada, sanitizarla quitando EXIF
+        if self.image and getattr(self.image, '_committed', True) is False:
+            self.image = sanitize_and_optimize_image(self.image)
+
         super().save(*args, **kwargs)

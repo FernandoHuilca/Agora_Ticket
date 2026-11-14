@@ -1,6 +1,9 @@
 import os
+from io import BytesIO
+
 from PIL import Image, UnidentifiedImageError
 from django.core.exceptions import ValidationError
+from django.core.files.uploadedfile import InMemoryUploadedFile
 
 ALLOWED_EXTENSIONS = {'.jpg', '.jpeg', '.png', '.webp'}
 ALLOWED_PILLOW_FORMATS = {'JPEG', 'PNG', 'WEBP'}
@@ -44,3 +47,37 @@ def validate_event_image(file):
         raise ValidationError("El archivo subido está corrupto o no es una imagen válida.")
     finally:
         file.seek(0)
+
+def sanitize_and_optimize_image(image_field):
+    """
+    Re-codifica la imagen con Pillow para eliminar metadatos EXIF (GPS, dispositivo),
+    neutralizar cargas ocultas (polyglots) y optimizar su tamaño a formato WEBP/JPEG.
+    """
+    if not image_field:
+        return image_field
+
+    image_field.file.seek(0)
+    with Image.open(image_field.file) as img:
+        # Convertir a RGB si viene en modo RGBA/P para evitar errores de canal alfa
+        if img.mode not in ('RGB', 'RGBA'):
+            img = img.convert('RGB')
+
+        # Limitar resolución máxima a 1600x1600 px manteniendo proporción
+        img.thumbnail((1600, 1600), Image.Resampling.LANCZOS)
+
+        output = BytesIO()
+        # Guardar como WEBP (o JPEG) nuevo descarta toda la tabla EXIF original
+        img.save(output, format='WEBP', quality=85)
+        output.seek(0)
+
+        base_name = os.path.splitext(os.path.basename(image_field.name))[0]
+        clean_name = f"{base_name}.webp"
+
+        return InMemoryUploadedFile(
+            file=output,
+            field_name='ImageField',
+            name=clean_name,
+            content_type='image/webp',
+            size=output.getbuffer().nbytes,
+            charset=None,
+        )

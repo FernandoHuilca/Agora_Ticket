@@ -8,6 +8,7 @@ urlpatterns = [
     path('', RedirectView.as_view(pattern_name='users:login', permanent=False), name='home'),
     path('', include('users.urls')),
     path('admin/', admin.site.urls),
+    path('eventos/', include('events.urls')),
 ]
 
 if settings.DEBUG:
