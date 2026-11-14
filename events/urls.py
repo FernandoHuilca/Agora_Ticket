@@ -11,4 +11,6 @@ urlpatterns = [
     path('<uuid:pk>/editar/', views.event_edit, name='edit'),
     path('<uuid:pk>/eliminar/', views.event_delete, name='delete'),
     path('<uuid:pk>/asistentes/', views.event_attendees, name='attendees'),
+    path('<uuid:pk>/cancelar/', views.event_cancel, name='cancel'),
+    path('moderacion/', views.moderation_list, name='moderation_list'),
 ]

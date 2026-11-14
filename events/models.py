@@ -14,9 +14,8 @@ class Event(models.Model):
     MIN_DURATION_MINUTES = 30
     MAX_DURATION_HOURS = 24
     class Status(models.TextChoices):
-        PENDING = 'PENDING', 'Pendiente de moderación'
-        APPROVED = 'APPROVED', 'Aprobado y publicado'
-        REJECTED = 'REJECTED', 'Rechazado'
+        DRAFT = 'DRAFT', 'Borrador'
+        PUBLISHED = 'PUBLISHED', 'Publicado'
         CANCELLED = 'CANCELLED', 'Cancelado'
 
     class Category(models.TextChoices):
@@ -117,7 +116,7 @@ class Event(models.Model):
     status = models.CharField(
         max_length=15,
         choices=Status.choices,
-        default=Status.APPROVED,
+        default=Status.PUBLISHED,
         db_index=True,
         verbose_name='Estado de publicación'
     )

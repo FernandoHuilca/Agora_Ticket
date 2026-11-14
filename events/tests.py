@@ -55,7 +55,7 @@ class EventModelTDDTests(TestCase):
         self.assertIn("end_date", ctx.exception.message_dict)
 
     def test_create_valid_event_initializes_available_tickets(self):
-        """Al crear un evento válido, available_tickets se inicializa igual a capacity y nace APPROVED."""
+        """Al crear un evento válido, available_tickets se inicializa igual a capacity y nace PUBLISHED."""
         event = Event.objects.create(
             organizer=self.organizer,
             name="Concierto Sinfónico de Apertura",
@@ -70,7 +70,7 @@ class EventModelTDDTests(TestCase):
             image=create_valid_image(),
         )
         self.assertEqual(event.available_tickets, 150)
-        self.assertEqual(event.status, Event.Status.APPROVED)
+        self.assertEqual(event.status, Event.Status.PUBLISHED)
 
     def test_free_event_with_positive_price_raises_error(self):
         """Un evento gratuito no puede tener precio mayor a cero."""
@@ -151,7 +151,7 @@ class EventPublicCatalogTests(TestCase):
         self.now = timezone.now()
 
         # 1. Evento aprobado (visible en cartelera)
-        self.approved_concert = Event.objects.create(
+        self.PUBLISHED_concert = Event.objects.create(
             organizer=self.organizer,
             name="Noche de Boleros Sinfónicos",
             description="Un recorrido por los mejores boleros con orquesta en vivo.",
@@ -162,11 +162,11 @@ class EventPublicCatalogTests(TestCase):
             capacity=200,
             is_free=False,
             price=Decimal("25.00"),
-            status=Event.Status.APPROVED,
+            status=Event.Status.PUBLISHED,
         )
 
         # 2. Evento pendiente (oculto al público general)
-        self.pending_opera = Event.objects.create(
+        self.DRAFT_opera = Event.objects.create(
             organizer=self.organizer,
             name="La Traviata en Concierto",
             description="Versión de concierto de la célebre ópera de Giuseppe Verdi.",
@@ -177,15 +177,15 @@ class EventPublicCatalogTests(TestCase):
             capacity=150,
             is_free=False,
             price=Decimal("40.00"),
-            status=Event.Status.PENDING,
+            status=Event.Status.DRAFT,
         )
 
-    def test_home_catalog_shows_only_approved_events(self):
-        """La cartelera pública solo lista eventos en estado APPROVED."""
+    def test_home_catalog_shows_only_PUBLISHED_events(self):
+        """La cartelera pública solo lista eventos en estado PUBLISHED."""
         response = self.client.get(reverse("events:home"))
         self.assertEqual(response.status_code, 200)
-        self.assertContains(response, self.approved_concert.name)
-        self.assertNotContains(response, self.pending_opera.name)
+        self.assertContains(response, self.PUBLISHED_concert.name)
+        self.assertNotContains(response, self.DRAFT_opera.name)
 
     def test_catalog_search_and_category_filter(self):
         """El buscador por texto y el filtro por categoría devuelven coincidencias exactas."""
@@ -200,7 +200,7 @@ class EventPublicCatalogTests(TestCase):
             capacity=80,
             is_free=True,
             price=Decimal("0.00"),
-            status=Event.Status.APPROVED,
+            status=Event.Status.PUBLISHED,
         )
 
         # Búsqueda por nombre
@@ -227,7 +227,7 @@ class EventPublicCatalogTests(TestCase):
                 capacity=100,
                 is_free=True,
                 price=Decimal("0.00"),
-                status=Event.Status.APPROVED,
+                status=Event.Status.PUBLISHED,
             )
 
         res_page_1 = self.client.get(reverse("events:home"))
@@ -237,23 +237,23 @@ class EventPublicCatalogTests(TestCase):
         res_page_2 = self.client.get(reverse("events:home"), {"page": 2})
         self.assertEqual(len(res_page_2.context["page_obj"]), 2)  # 1 del setUp + 7 creados = 8 total
 
-    def test_detail_view_hides_pending_from_public_but_allows_organizer(self):
-        """Un evento PENDING da 404 a un cliente, pero su organizador sí puede previsualizarlo."""
-        url_pending = reverse("events:detail", kwargs={"pk": self.pending_opera.pk})
+    def test_detail_view_hides_DRAFT_from_public_but_allows_organizer(self):
+        """Un evento DRAFT da 404 a un cliente, pero su organizador sí puede previsualizarlo."""
+        url_DRAFT = reverse("events:detail", kwargs={"pk": self.DRAFT_opera.pk})
 
         # Visitante anónimo o cliente normal recibe 404
-        res_anon = self.client.get(url_pending)
+        res_anon = self.client.get(url_DRAFT)
         self.assertEqual(res_anon.status_code, 404)
 
         self.client.force_login(self.client_user)
-        res_client = self.client.get(url_pending)
+        res_client = self.client.get(url_DRAFT)
         self.assertEqual(res_client.status_code, 404)
 
         # El organizador dueño sí puede verlo
         self.client.force_login(self.organizer)
-        res_org = self.client.get(url_pending)
+        res_org = self.client.get(url_DRAFT)
         self.assertEqual(res_org.status_code, 200)
-        self.assertContains(res_org, self.pending_opera.name)
+        self.assertContains(res_org, self.DRAFT_opera.name)
 
 class EventOrganizerCRUDAndSecurityTests(TestCase):
     def setUp(self):
@@ -288,7 +288,7 @@ class EventOrganizerCRUDAndSecurityTests(TestCase):
             available_tickets=100,
             is_free=False,
             price=Decimal("15.00"),
-            status=Event.Status.APPROVED,
+            status=Event.Status.PUBLISHED,
         )
 
     def test_client_cannot_access_organizer_views_rbac(self):
@@ -300,7 +300,7 @@ class EventOrganizerCRUDAndSecurityTests(TestCase):
         self.assertEqual(res_new.status_code, 403)
 
     def test_organizer_can_create_and_publish_event_directly(self):
-        """Al crear un evento desde org_new, se asigna al organizador y se publica directamente (APPROVED)."""
+        """Al crear un evento desde org_new, se asigna al organizador y se publica directamente (PUBLISHED)."""
         self.client.force_login(self.org_1)
         data = {
             "name": "Festival Coral Quiteño",
@@ -319,13 +319,13 @@ class EventOrganizerCRUDAndSecurityTests(TestCase):
         self.assertEqual(response.status_code, 302)
         created = Event.objects.get(name="Festival Coral Quiteño")
         self.assertEqual(created.organizer, self.org_1)
-        self.assertEqual(created.status, Event.Status.APPROVED)
+        self.assertEqual(created.status, Event.Status.PUBLISHED)
         self.assertEqual(created.available_tickets, 120)
 
     def test_organizer_cannot_edit_delete_or_view_attendees_of_another_organizer_idor(self):
-        """Seguridad IDOR: org_2 recibe 403 al intentar editar, borrar o ver inscritos de org_1."""
+        """Seguridad IDOR: org_2 recibe 403 al intentar editar, borrar, cancelar o ver inscritos de org_1."""
         self.client.force_login(self.org_2)
-        for route in ("events:edit", "events:delete", "events:attendees"):
+        for route in ("events:edit", "events:delete", "events:attendees", "events:cancel"):
             url = reverse(route, kwargs={"pk": self.event_org_1.pk})
             response = self.client.get(url)
             self.assertEqual(response.status_code, 403)
@@ -447,3 +447,104 @@ class EventImageProcessingAndStorageTests(TestCase):
         with self.assertRaises(ValidationError) as ctx:
             event.full_clean()
         self.assertIn("image", ctx.exception.message_dict)
+
+class EventModerationTests(TestCase):
+    def setUp(self):
+        self.admin_user = User.objects.create_user(
+            email="admin@casadelamusica.ec",
+            password="PasswordSegura123!",
+            role=User.Role.ADMIN,
+        )
+        self.organizer = User.objects.create_user(
+            email="org@casadelamusica.ec",
+            password="PasswordSegura123!",
+            role=User.Role.ORGANIZER,
+        )
+        self.other_organizer = User.objects.create_user(
+            email="otro_org@casadelamusica.ec",
+            password="PasswordSegura123!",
+            role=User.Role.ORGANIZER,
+        )
+        self.now = timezone.now()
+        self.published_event = Event.objects.create(
+            organizer=self.organizer,
+            name="Gala de Bandoneón",
+            description="Concierto especial de tango y música rioplatense en vivo.",
+            category=Event.Category.CONCERT,
+            start_date=self.now + timedelta(days=8),
+            end_date=self.now + timedelta(days=8, hours=2),
+            location="Sala Principal",
+            capacity=180,
+            is_free=False,
+            price=Decimal("20.00"),
+            status=Event.Status.PUBLISHED,
+        )
+        self.draft_event = Event.objects.create(
+            organizer=self.organizer,
+            name="Ensayo Sinfónico en Borrador",
+            description="Evento en borrador que no debe aparecer como publicado vigente.",
+            category=Event.Category.SYMPHONIC,
+            start_date=self.now + timedelta(days=12),
+            end_date=self.now + timedelta(days=12, hours=2),
+            location="Sala Principal",
+            capacity=100,
+            is_free=True,
+            price=Decimal("0.00"),
+            status=Event.Status.DRAFT,
+        )
+
+    def test_organizer_cannot_access_moderation_views_rbac(self):
+        """Seguridad: Un organizador no puede entrar al panel administrativo de moderación ni cancelar eventos ajenos (403)."""
+        self.client.force_login(self.other_organizer)
+        res_queue = self.client.get(reverse("events:moderation_list"))
+        res_cancel_other = self.client.post(
+            reverse("events:cancel", kwargs={"pk": self.published_event.pk})
+        )
+        self.assertEqual(res_queue.status_code, 403)
+        self.assertEqual(res_cancel_other.status_code, 403)
+
+    def test_admin_moderation_list_displays_active_published_events(self):
+        """El panel de administrador lista los eventos publicados vigentes con opciones de ver detalles y cancelar."""
+        self.client.force_login(self.admin_user)
+        res = self.client.get(reverse("events:moderation_list"))
+        self.assertEqual(res.status_code, 200)
+        self.assertContains(res, self.published_event.name)
+        self.assertNotContains(res, self.draft_event.name)
+        self.assertContains(res, reverse("events:detail", kwargs={"pk": self.published_event.pk}))
+        self.assertContains(res, reverse("events:cancel", kwargs={"pk": self.published_event.pk}))
+
+    def test_admin_can_cancel_published_event(self):
+        """El administrador puede cancelar un evento publicado vigente; pasa a CANCELLED y sale de cartelera."""
+        self.client.force_login(self.admin_user)
+        url = reverse("events:cancel", kwargs={"pk": self.published_event.pk})
+
+        # GET muestra la plantilla de confirmación de cancelación
+        res_get = self.client.get(url)
+        self.assertEqual(res_get.status_code, 200)
+        self.assertContains(res_get, self.published_event.name)
+
+        # POST ejecuta la cancelación
+        response = self.client.post(url)
+        self.assertEqual(response.status_code, 302)
+
+        self.published_event.refresh_from_db()
+        self.assertEqual(self.published_event.status, Event.Status.CANCELLED)
+        self.assertEqual(self.published_event.moderated_by, self.admin_user)
+
+        # Ya no aparece en la cartelera pública
+        res_home = self.client.get(reverse("events:home"))
+        self.assertNotContains(res_home, self.published_event.name)
+
+    def test_organizer_can_cancel_own_published_event(self):
+        """El organizador dueño también puede cancelar su propio evento publicado."""
+        # Simulamos que el evento ya tiene una imagen guardada en Cloudinary (public_id sin extensión)
+        Event.objects.filter(pk=self.published_event.pk).update(
+            image="media/events/2026/11/afiche_cloudinary_id"
+        )
+        self.client.force_login(self.organizer)
+        url = reverse("events:cancel", kwargs={"pk": self.published_event.pk})
+        response = self.client.post(url)
+        self.assertEqual(response.status_code, 302)
+
+        self.published_event.refresh_from_db()
+        self.assertEqual(self.published_event.status, Event.Status.CANCELLED)

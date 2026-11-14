@@ -1,4 +1,6 @@
 from functools import wraps
+from asgiref.sync import async_to_sync
+from channels.layers import get_channel_layer
 from django.contrib import messages
 from django.contrib.auth.views import redirect_to_login
 from django.core.exceptions import PermissionDenied
@@ -6,6 +8,7 @@ from django.core.paginator import Paginator
 from django.db.models import Q
 from django.http import Http404, HttpResponseBadRequest
 from django.shortcuts import get_object_or_404, redirect, render
+from django.utils import timezone
 
 from users.models import User
 from .forms import EventFilterForm, EventForm
@@ -37,7 +40,7 @@ def _check_event_ownership_or_admin(user, event):
 def home(request):
     """Vista 'home': Cartelera pública de eventos aprobados con búsqueda, filtros y paginación."""
     queryset = Event.objects.filter(
-        status=Event.Status.APPROVED
+        status=Event.Status.PUBLISHED
     ).select_related('organizer').order_by('start_date')
 
     filter_form = EventFilterForm(request.GET or None)
@@ -74,7 +77,7 @@ def detail(request, pk):
     """Vista 'detail': Detalle de un evento."""
     event = get_object_or_404(Event.objects.select_related('organizer'), pk=pk)
 
-    if event.status != Event.Status.APPROVED:
+    if event.status != Event.Status.PUBLISHED:
         user = request.user
         is_owner = user.is_authenticated and event.organizer_id == user.id
         is_admin = user.is_authenticated and hasattr(user, 'has_role') and user.has_role(User.Role.ADMIN)
@@ -117,12 +120,12 @@ def org_new(request):
         if form.is_valid():
             event = form.save(commit=False)
             event.organizer = request.user
-            event.status = Event.Status.APPROVED
+            event.status = Event.Status.PUBLISHED
             event.available_tickets = form.cleaned_data['capacity']
             event.save()
 
             # Notificar en tiempo real a través de WebSockets (coordina con Persona 4)
-            # _broadcast_new_event_notification(event)
+            _broadcast_new_event_notification(event)
 
             messages.success(request, 'Evento creado y publicado en la cartelera exitosamente.')
             return redirect('events:org_list')
@@ -197,3 +200,73 @@ def event_attendees(request, pk):
         'attendees': attendees,
         'tickets_sold': tickets_sold,
     })
+
+def _broadcast_new_event_notification(event):
+    """
+    Envía una notificación en tiempo real por Django Channels cuando un evento es publicado.
+    Coordina con Persona 4 (grupo 'notifications').
+    """
+    try:
+        channel_layer = get_channel_layer()
+        if channel_layer is not None:
+            async_to_sync(channel_layer.group_send)(
+                "notifications",
+                {
+                    "type": "event_notification",
+                    "event_id": str(event.pk),
+                    "name": event.name,
+                    "category": event.get_category_display(),
+                    "start_date": event.start_date.strftime("%d/%m/%Y %H:%M"),
+                    "message": f"Nuevo evento publicado en cartelera: {event.name}",
+                },
+            )
+    except Exception:
+        # Si Redis/Channels aún no está levantado en local, no interrumpir la transacción HTTP
+        pass
+
+
+@role_required(User.Role.ADMIN)
+def moderation_list(request):
+    """
+    Panel de administración de eventos: Lista eventos publicados vigentes por defecto
+    para que el administrador pueda consultar sus detalles o cancelarlos en caso de incidente.
+    """
+    status_filter = request.GET.get('status', Event.Status.PUBLISHED)
+    if status_filter not in Event.Status.values:
+        status_filter = Event.Status.PUBLISHED
+
+    queryset = Event.objects.filter(
+        status=status_filter
+    ).select_related('organizer', 'moderated_by')
+
+    if status_filter == Event.Status.PUBLISHED:
+        queryset = queryset.filter(end_date__gte=timezone.now()).order_by('start_date')
+    else:
+        queryset = queryset.order_by('-created_at')
+
+    paginator = Paginator(queryset, 10)
+    page_obj = paginator.get_page(request.GET.get('page'))
+
+    return render(request, 'events/moderation_list.html', {
+        'page_obj': page_obj,
+        'current_status': status_filter,
+        'status_choices': Event.Status.choices,
+    })
+
+
+@role_required(User.Role.ORGANIZER, User.Role.ADMIN)
+def event_cancel(request, pk):
+    """Permite al organizador dueño o al ADMIN cancelar un evento publicado."""
+    event = get_object_or_404(Event.objects.select_related('organizer'), pk=pk)
+    _check_event_ownership_or_admin(request.user, event)
+
+    if request.method == 'POST':
+        event.status = Event.Status.CANCELLED
+        event.moderated_by = request.user
+        event.save(update_fields=['status', 'moderated_by', 'updated_at'])
+        messages.warning(request, f'El evento "{event.name}" ha sido cancelado.')
+        if hasattr(request.user, 'has_role') and request.user.has_role(User.Role.ADMIN):
+            return redirect('events:moderation_list')
+        return redirect('events:org_list')
+
+    return render(request, 'events/event_confirm_cancel.html', {'event': event})

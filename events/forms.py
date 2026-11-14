@@ -76,13 +76,6 @@ class EventForm(forms.ModelForm):
 
     def clean_start_date(self):
         start_date = self.cleaned_data.get('start_date')
-        # Al crear un evento nuevo, exigir que la fecha de inicio sea futura
-        if not self.instance.pk and start_date and start_date <= timezone.now():
-            raise forms.ValidationError('La fecha de inicio del evento debe ser en el futuro.')
-        return start_date
-
-    def clean_start_date(self):
-        start_date = self.cleaned_data.get('start_date')
         # _state.adding es True cuando el evento es nuevo y aún no existe en la BD
         if self.instance._state.adding and start_date and start_date <= timezone.now():
             raise forms.ValidationError('La fecha de inicio del evento debe ser en el futuro.')

@@ -15,7 +15,8 @@ def validate_event_image(file):
     Valida tamaño, extensión y estructura binaria real de la imagen.
     Bloquea archivos SVG y poliglotas para prevenir Stored XSS y DoS.
     """
-    if not file:
+    # Si no hay archivo o ya fue validado y guardado previamente en el storage (ej. Cloudinary public_id sin extensión)
+    if not file or getattr(file, '_committed', False):
         return
 
     # 1. Validar tamaño máximo (2 MB)
