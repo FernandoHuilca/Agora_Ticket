@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>{{ event.name }} — Ágora Ticket</title>
+</head>
+<body>
+    <main>
+        <a href="{% url 'events:home' %}">&larr; Volver a la cartelera</a>
+        <h1>{{ event.name }}</h1>
+        {% if event.image %}
+            <img src="{{ event.image.url }}" alt="Afiche de {{ event.name }}" loading="lazy" width="320">
+        {% else %}
+            <div class="placeholder-poster">Sin afiche disponible</div>
+        {% endif %}
+        <p><strong>Estado:</strong> {{ event.get_status_display }}</p>
+        <p><strong>Categoría:</strong> {{ event.get_category_display }}</p>
+        <p><strong>Descripción:</strong> {{ event.description }}</p>
+        <p><strong>Inicio:</strong> {{ event.start_date|date:"d/m/Y H:i" }}</p>
+        <p><strong>Fin:</strong> {{ event.end_date|date:"d/m/Y H:i" }}</p>
+        <p><strong>Ubicación:</strong> {{ event.location }}</p>
+        <p><strong>Cupos:</strong> {{ event.available_tickets }} disponibles de {{ event.capacity }}</p>
+
+        {% if event.is_adult_only %}
+            <p><strong>Restricción:</strong> Evento exclusivo para mayores de 18 años.</p>
+        {% endif %}
+
+        {% if event.is_free %}
+            <p><strong>Modalidad:</strong> Gratuito (Máximo {{ event.max_tickets_per_user }} entradas por persona)</p>
+        {% else %}
+            <p><strong>Precio:</strong> ${{ event.price }}</p>
+        {% endif %}
+    </main>
+</body>
+</html>
