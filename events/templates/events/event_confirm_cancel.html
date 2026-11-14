@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Cancelar Evento — Ágora Ticket</title>
+</head>
+<body>
+    <h1>Confirmar cancelación de "{{ event.name }}"</h1>
+    <p><strong>Organizador:</strong> {{ event.organizer.email }}</p>
+    <p><strong>Categoría:</strong> {{ event.get_category_display }}</p>
+    <p><strong>Horario:</strong> {{ event.start_date|date:"d/m/Y H:i" }} a {{ event.end_date|date:"d/m/Y H:i" }}</p>
+    <p><strong>Sala:</strong> {{ event.location }} (Disponibles: {{ event.available_tickets }} / {{ event.capacity }})</p>
+    <p><strong>Estado actual:</strong> {{ event.get_status_display }}</p>
+
+    {% if event.status == 'CANCELLED' %}
+        <p><strong>Aviso:</strong> Este evento ya se encuentra cancelado.</p>
+        {% if user.role == 'admin' %}
+            <a href="{% url 'events:moderation_list' %}">Volver al panel de eventos</a>
+        {% else %}
+            <a href="{% url 'events:org_list' %}">Volver a mis eventos</a>
+        {% endif %}
+    {% else %}
+        <p>¿Estás seguro de que deseas cancelar este evento? El evento dejará de mostrarse en la cartelera pública y pasará a estado Cancelado.</p>
+        <form method="post">
+            {% csrf_token %}
+            <button type="submit">Sí, cancelar evento</button>
+            {% if user.role == 'admin' %}
+                <a href="{% url 'events:moderation_list' %}">Volver</a>
+            {% else %}
+                <a href="{% url 'events:org_list' %}">Volver</a>
+            {% endif %}
+        </form>
+    {% endif %}
+</body>
+</html>
