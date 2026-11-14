@@ -1,0 +1,133 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Panel de Administración | Ágora Ticket</title>
+
+    <!-- Único archivo CSS compartido por todo el equipo -->
+    <link rel="stylesheet" href="{% static 'css/base.css' %}">
+</head>
+<body>
+
+<div class="app-container">
+    <!-- Menú Lateral / Navegación -->
+    <aside class="sidebar">
+        <h2>Ágora Admin</h2>
+        <nav>
+            <ul>
+                <li><a href="{% url 'custom_admin:dashboard_home' %}">Dashboard General</a></li>
+                <li><a href="/admin/">Panel Técnico Django</a></li>
+            </ul>
+        </nav>
+        <p>Conectado como: <strong>{{ request.user.username|default:request.user.email }}</strong></p>
+    </aside>
+
+    <!-- Contenido Principal -->
+    <main class="main-content">
+        <header class="page-header">
+            <h1>Panel de Control y Métricas</h1>
+            <span class="badge">Base de Datos: Neon Cloud Conectada</span>
+        </header>
+
+        <!-- Mensajes del sistema -->
+        {% if messages %}
+        <div class="messages">
+            {% for message in messages %}
+                <p class="alert">{{ message }}</p>
+            {% endfor %}
+        </div>
+        {% endif %}
+
+        <!-- Tarjetas de Métricas (KPIs) -->
+        <section class="cards-grid">
+            <div class="card">
+                <h3>Total Usuarios</h3>
+                <p class="stat-number">{{ total_usuarios }}</p>
+                <small>{{ usuarios_activos }} activos</small>
+            </div>
+
+            <div class="card">
+                <h3>Usuarios Bloqueados</h3>
+                <p class="stat-number">{{ usuarios_bloqueados }}</p>
+                <small>{{ total_admins }} administradores</small>
+            </div>
+
+            <div class="card">
+                <h3>Eventos Publicados</h3>
+                <p class="stat-number">{{ total_eventos }}</p>
+                <small>Módulo Eventos</small>
+            </div>
+
+            <div class="card">
+                <h3>Tickets Vendidos</h3>
+                <p class="stat-number">{{ tickets_vendidos }}</p>
+                <small>Módulo Tickets QR</small>
+            </div>
+        </section>
+
+        <!-- Tabla de Moderación de Usuarios -->
+        <section class="table-section">
+            <h2>Moderación y Control de Usuarios Recientes</h2>
+            <table class="data-table">
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>Usuario</th>
+                        <th>Correo</th>
+                        <th>Rol</th>
+                        <th>Estado</th>
+                        <th>Acción</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for u in ultimos_usuarios %}
+                    <tr>
+                        <td>#{{ u.id }}</td>
+                        <td>{{ u.username|default:u.email }}</td>
+                        <td>{{ u.email|default:"Sin correo" }}</td>
+                        <td>
+                            {% if u.is_superuser %}
+                                <span class="badge">SuperAdmin</span>
+                            {% elif u.is_staff %}
+                                <span class="badge">Staff</span>
+                            {% else %}
+                                <span class="badge">Cliente</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if u.is_active %}
+                                <span class="badge">Activo</span>
+                            {% else %}
+                                <span class="badge">Bloqueado</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if u != request.user %}
+                            <form method="POST" action="{% url 'custom_admin:toggle_estado_usuario' u.id %}">
+                                {% csrf_token %}
+                                {% if u.is_active %}
+                                    <button type="submit" class="btn btn-danger">Bloquear</button>
+                                {% else %}
+                                    <button type="submit" class="btn btn-primary">Activar</button>
+                                {% endif %}
+                            </form>
+                            {% else %}
+                                <span>Tu cuenta</span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="6">No hay usuarios registrados.</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </section>
+    </main>
+</div>
+
+</body>
+</html>
