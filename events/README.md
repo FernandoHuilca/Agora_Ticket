@@ -56,6 +56,12 @@ La base de datos almacena únicamente la referencia/URL del archivo en el campo 
 - **Producción / Con credenciales en `.env`:** Usa `MediaCloudinaryStorage` enviando los afiches a Cloudinary bajo conexión HTTPS (`SECURE=True`).
 - **Desarrollo sin credenciales y entorno de pruebas (`manage.py test`):** Conmuta automáticamente a `FileSystemStorage` local para no requerir red ni consumir cuota durante las pruebas automatizadas.
 
+Para descargar la dependencia de Cloudinary, ejecutar nuevamente el comando:
+
+```powershell
+pip install -r requirements.txt
+```
+
 Variables requeridas en `.env` para habilitar Cloudinary:
 
 ```dotenv
