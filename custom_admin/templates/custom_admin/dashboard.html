@@ -18,7 +18,11 @@
         <nav>
             <ul>
                 <li><a href="{% url 'custom_admin:dashboard_home' %}">Dashboard General</a></li>
-                <li><a href="/admin/">Panel Técnico Django</a></li>
+                <li><a href="{% url 'events:moderation_list' %}">Moderación de Eventos</a></li>
+                <li><a href="{% url 'events:home' %}">Cartelera Pública</a></li>
+                {% if request.user.is_superuser %}
+                    <li><a href="/admin/">Panel Técnico Django</a></li>
+                {% endif %}
             </ul>
         </nav>
         <p>Conectado como: <strong>{{ request.user.username|default:request.user.email }}</strong></p>
@@ -57,7 +61,7 @@
             <div class="card">
                 <h3>Eventos Publicados</h3>
                 <p class="stat-number">{{ total_eventos }}</p>
-                <small>Módulo Eventos</small>
+                <small>Publicados vigentes</small>
             </div>
 
             <div class="card">
@@ -90,10 +94,12 @@
                         <td>
                             {% if u.is_superuser %}
                                 <span class="badge">SuperAdmin</span>
+                            {% elif u.role == 'admin' %}
+                                <span class="badge">Administrador</span>
                             {% elif u.is_staff %}
                                 <span class="badge">Staff</span>
                             {% else %}
-                                <span class="badge">Cliente</span>
+                                <span class="badge">{{ u.get_role_display|default:"Cliente" }}</span>
                             {% endif %}
                         </td>
                         <td>
@@ -121,6 +127,44 @@
                     {% empty %}
                     <tr>
                         <td colspan="6">No hay usuarios registrados.</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </section>
+
+        <!-- Tabla de Moderación de Eventos Publicados Vigentes -->
+        <section class="table-section">
+            <h2>Eventos Publicados Vigentes (<a href="{% url 'events:moderation_list' %}">Ver bandeja completa</a>)</h2>
+            <table class="data-table">
+                <thead>
+                    <tr>
+                        <th>Evento</th>
+                        <th>Organizador</th>
+                        <th>Fecha Inicio</th>
+                        <th>Disponibles / Aforo</th>
+                        <th>Modalidad</th>
+                        <th>Estado</th>
+                        <th>Acciones</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for event in eventos_vigentes %}
+                    <tr>
+                        <td><a href="{% url 'events:detail' event.pk %}">{{ event.name }}</a></td>
+                        <td>{{ event.organizer.email }}</td>
+                        <td>{{ event.start_date|date:"d/m/Y H:i" }}</td>
+                        <td>{{ event.available_tickets }} / {{ event.capacity }}</td>
+                        <td>{% if event.is_free %}Gratis{% else %}${{ event.price }}{% endif %}</td>
+                        <td><span class="badge">{{ event.get_status_display }}</span></td>
+                        <td>
+                            <a href="{% url 'events:detail' event.pk %}" class="btn btn-primary">Ver detalles</a>
+                            <a href="{% url 'events:cancel' event.pk %}" class="btn btn-danger">Cancelar evento</a>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="7">No hay eventos publicados vigentes en este momento.</td>
                     </tr>
                     {% endfor %}
                 </tbody>

@@ -6,7 +6,10 @@
 </head>
 <body>
     <h1>Administración de Eventos Publicados Vigentes</h1>
-    <p><a href="{% url 'events:home' %}">&larr; Ir a Cartelera Pública</a></p>
+    <p>
+        <a href="{% url 'custom_admin:dashboard_home' %}">&larr; Ir al Dashboard Administrativo</a> |
+        <a href="{% url 'events:home' %}">Ir a Cartelera Pública</a>
+    </p>
 
     <form method="get">
         <label for="status">Estado:</label>

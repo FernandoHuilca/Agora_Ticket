@@ -8,7 +8,9 @@ from django.core.paginator import Paginator
 from django.db.models import Q
 from django.http import Http404, HttpResponseBadRequest
 from django.shortcuts import get_object_or_404, redirect, render
+from django.urls import reverse
 from django.utils import timezone
+from django.utils.http import url_has_allowed_host_and_scheme
 
 from users.models import User
 from .forms import EventFilterForm, EventForm
@@ -35,6 +37,27 @@ def _check_event_ownership_or_admin(user, event):
     is_admin = hasattr(user, 'has_role') and user.has_role(User.Role.ADMIN)
     if event.organizer_id != user.id and not is_admin:
         raise PermissionDenied("No tienes permiso para gestionar un evento de otro organizador.")
+
+
+def _get_safe_back_url(request, default_route='events:home'):
+    """
+    Determina la URL de retorno segura usando ?next=, POST[next] o HTTP_REFERER
+    validados contra el host actual (prevención de Open Redirect).
+    """
+    candidate = (
+        request.POST.get('next')
+        or request.GET.get('next')
+        or request.META.get('HTTP_REFERER')
+    )
+    if candidate and url_has_allowed_host_and_scheme(
+        url=candidate,
+        allowed_hosts={request.get_host()},
+        require_https=request.is_secure(),
+    ):
+        if candidate not in (request.build_absolute_uri(), request.get_full_path()):
+            return candidate
+    return reverse(default_route)
+
 
 
 def home(request):
@@ -84,7 +107,11 @@ def detail(request, pk):
         if not (is_owner or is_admin):
             raise Http404("El evento solicitado no está disponible públicamente.")
 
-    return render(request, 'events/event_detail.html', {'event': event})
+    back_url = _get_safe_back_url(request, default_route='events:home')
+    return render(request, 'events/event_detail.html', {
+        'event': event,
+        'back_url': back_url,
+    })
 
 
 @role_required(User.Role.ORGANIZER, User.Role.ADMIN)
@@ -260,13 +287,18 @@ def event_cancel(request, pk):
     event = get_object_or_404(Event.objects.select_related('organizer'), pk=pk)
     _check_event_ownership_or_admin(request.user, event)
 
+    is_admin = hasattr(request.user, 'has_role') and request.user.has_role(User.Role.ADMIN)
+    default_route = 'events:moderation_list' if is_admin else 'events:org_list'
+    back_url = _get_safe_back_url(request, default_route=default_route)
+
     if request.method == 'POST':
         event.status = Event.Status.CANCELLED
         event.moderated_by = request.user
         event.save(update_fields=['status', 'moderated_by', 'updated_at'])
         messages.warning(request, f'El evento "{event.name}" ha sido cancelado.')
-        if hasattr(request.user, 'has_role') and request.user.has_role(User.Role.ADMIN):
-            return redirect('events:moderation_list')
-        return redirect('events:org_list')
+        return redirect(back_url)
 
-    return render(request, 'events/event_confirm_cancel.html', {'event': event})
+    return render(request, 'events/event_confirm_cancel.html', {
+        'event': event,
+        'back_url': back_url,
+    })
