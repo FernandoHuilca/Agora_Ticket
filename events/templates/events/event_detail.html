@@ -6,7 +6,7 @@
 </head>
 <body>
     <main>
-        <a href="{% url 'events:home' %}">&larr; Volver a la cartelera</a>
+        <a href="{{ back_url }}" onclick="if (window.history.length > 1) { history.back(); return false; }">&larr; Volver</a>
         <h1>{{ event.name }}</h1>
         {% if event.image %}
             <img src="{{ event.image.url }}" alt="Afiche de {{ event.name }}" loading="lazy" width="320">

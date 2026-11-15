@@ -255,6 +255,20 @@ class EventPublicCatalogTests(TestCase):
         self.assertEqual(res_org.status_code, 200)
         self.assertContains(res_org, self.DRAFT_opera.name)
 
+    def test_detail_view_sets_safe_dynamic_back_url(self):
+        """La vista de detalle devuelve como back_url la página previa segura (ej. dashboard o cartelera) y bloquea hosts externos."""
+        detail_url = reverse("events:detail", kwargs={"pk": self.PUBLISHED_concert.pk})
+        dashboard_url = reverse("custom_admin:dashboard_home")
+
+        # Si viene desde el dashboard de admin, back_url apunta al dashboard
+        res_from_dashboard = self.client.get(detail_url, HTTP_REFERER=f"http://testserver{dashboard_url}")
+        self.assertEqual(res_from_dashboard.context["back_url"], f"http://testserver{dashboard_url}")
+
+        # Si el referer es un dominio externo malicioso, hace fallback seguro a events:home
+        res_external = self.client.get(detail_url, HTTP_REFERER="https://sitio-externo.com/phishing")
+        self.assertEqual(res_external.context["back_url"], reverse("events:home"))
+
+
 class EventOrganizerCRUDAndSecurityTests(TestCase):
     def setUp(self):
         self.org_1 = User.objects.create_user(
