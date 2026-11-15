@@ -1,0 +1,16 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>{% if is_edit %}Editar Evento{% else %}Nuevo Evento{% endif %} — Ágora Ticket</title>
+</head>
+<body>
+    <h1>{% if is_edit %}Editar: {{ event.name }}{% else %}Registrar Nuevo Evento{% endif %}</h1>
+    <form method="post" enctype="multipart/form-data">
+        {% csrf_token %}
+        {{ form.as_p }}
+        <button type="submit">{% if is_edit %}Guardar cambios{% else %}Publicar evento{% endif %}</button>
+        <a href="{% url 'events:org_list' %}">Cancelar</a>
+    </form>
+</body>
+</html>

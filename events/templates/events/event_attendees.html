@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Inscritos en {{ event.name }} — Ágora Ticket</title>
+</head>
+<body>
+    <h1>Asistentes registrados: {{ event.name }}</h1>
+    <p><strong>Entradas emitidas:</strong> {{ tickets_sold }} de {{ event.capacity }} (Disponibles: {{ event.available_tickets }})</p>
+    <a href="{% url 'events:org_list' %}">&larr; Volver a mis eventos</a>
+
+    <ul>
+        {% for ticket in attendees %}
+            <li>{{ ticket.user.email }} — Estado: {{ ticket.status }}</li>
+        {% empty %}
+            <li>Aún no hay entradas emitidas o registradas para este evento.</li>
+        {% endfor %}
+    </ul>
+</body>
+</html>

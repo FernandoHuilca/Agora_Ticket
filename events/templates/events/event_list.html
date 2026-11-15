@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Cartelera Cultural — Ágora Ticket</title>
+</head>
+<body>
+    <header>
+        <h1>Cartelera Casa de la Música</h1>
+    </header>
+
+    <section>
+        <form method="get" action="{% url 'events:home' %}">
+            {{ filter_form.q }}
+            {{ filter_form.category }}
+            {{ filter_form.date_from }}
+            {{ filter_form.is_free }}
+            <button type="submit">Filtrar</button>
+            <a href="{% url 'events:home' %}">Limpiar</a>
+        </form>
+    </section>
+
+    <main>
+        {% for event in page_obj %}
+            <article>
+                <h2><a href="{% url 'events:detail' event.pk %}">{{ event.name }}</a></h2>
+                {% if event.image %}
+                    <img src="{{ event.image.url }}" alt="Afiche de {{ event.name }}" loading="lazy" width="320">
+                {% else %}
+                    <div class="placeholder-poster">Sin afiche disponible</div>
+                {% endif %}
+                <p><strong>Categoría:</strong> {{ event.get_category_display }}</p>
+                <p><strong>Fecha:</strong> {{ event.start_date|date:"d/m/Y H:i" }}</p>
+                <p><strong>Sala:</strong> {{ event.location }}</p>
+                <p><strong>Cupos disponibles:</strong> {{ event.available_tickets }} / {{ event.capacity }}</p>
+                <p>
+                    {% if event.is_free %}
+                        <span>Entrada Gratuita</span>
+                    {% else %}
+                        <span>Precio: ${{ event.price }}</span>
+                    {% endif %}
+                </p>
+            </article>
+        {% empty %}
+            <p>No se encontraron eventos disponibles con esos criterios.</p>
+        {% endfor %}
+    </main>
+
+    {% if page_obj.has_other_pages %}
+    <nav aria-label="Paginación de cartelera">
+        {% if page_obj.has_previous %}
+            <a href="?page={{ page_obj.previous_page_number }}&q={{ request.GET.q|default:'' }}&category={{ request.GET.category|default:'' }}">Anterior</a>
+        {% endif %}
+        <span>Página {{ page_obj.number }} de {{ page_obj.paginator.num_pages }}</span>
+        {% if page_obj.has_next %}
+            <a href="?page={{ page_obj.next_page_number }}&q={{ request.GET.q|default:'' }}&category={{ request.GET.category|default:'' }}">Siguiente</a>
+        {% endif %}
+    </nav>
+    {% endif %}
+</body>
+</html>

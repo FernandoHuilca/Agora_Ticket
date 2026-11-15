@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Eliminar Evento — Ágora Ticket</title>
+</head>
+<body>
+    <h1>Confirmar eliminación de "{{ event.name }}"</h1>
+    {% if tickets_sold > 0 %}
+        <p><strong>Acción bloqueada:</strong> Este evento ya cuenta con {{ tickets_sold }} entradas emitidas y no puede ser eliminado por integridad de registros.</p>
+        <a href="{% url 'events:org_list' %}">Volver a mis eventos</a>
+    {% else %}
+        <p>¿Estás seguro de que deseas eliminar permanentemente este evento? Esta acción no se puede deshacer.</p>
+        <form method="post">
+            {% csrf_token %}
+            <button type="submit">Sí, eliminar evento</button>
+            <a href="{% url 'events:org_list' %}">Cancelar</a>
+        </form>
+    {% endif %}
+</body>
+</html>
