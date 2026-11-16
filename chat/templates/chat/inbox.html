@@ -1,0 +1,98 @@
+{% extends 'base.html' %}
+{% load static %}
+{% block title %}{% if active %}{{ active_info.title }} · {% endif %}Mensajes | Ágora Ticket{% endblock %}
+{% block head %}<link rel="stylesheet" href="{% static 'chat/chat.css' %}">{% endblock %}
+
+{% block content %}
+<div class="page-head">
+  <div>
+    <h1>Mensajes</h1>
+    <p>Conversa con el organizador y con los demás asistentes de tus eventos.</p>
+  </div>
+</div>
+
+<div class="chat-layout{% if active %} has-active{% endif %}">
+  <aside class="chat-sidebar" aria-label="Conversaciones">
+    <h2 class="chat-sidebar-head">Conversaciones</h2>
+    <ul class="chat-list" id="chat-list" data-conversation-url="{% url 'chat:conversation' '00000000-0000-0000-0000-000000000000' %}">
+      {% for item in items %}
+      <li>
+        <a class="chat-item" href="{% url 'chat:conversation' item.conversation.pk %}" data-conversation-id="{{ item.conversation.pk }}" {% if item.is_active %}aria-current="page"{% endif %}>
+          <span class="avatar" aria-hidden="true" data-avatar>{{ item.avatar }}</span>
+          <span class="chat-item-body">
+            <span class="chat-item-title" data-title>{{ item.title }}</span>
+            <span class="chat-item-sub" data-subtitle>{{ item.subtitle }}</span>
+            <span class="chat-item-preview" data-preview>{{ item.preview }}</span>
+          </span>
+          <span class="unread-badge" data-unread {% if not item.unread %}hidden{% endif %}>{{ item.unread }}</span>
+        </a>
+      </li>
+      {% empty %}
+      <li class="chat-list-empty" data-empty>
+        Aún no tienes conversaciones. Aparecerán aquí cuando tengas una entrada emitida o cuando organices un evento.
+      </li>
+      {% endfor %}
+    </ul>
+    <template id="chat-item-template">
+      <li>
+        <a class="chat-item" href="#" data-conversation-id="">
+          <span class="avatar" aria-hidden="true" data-avatar></span>
+          <span class="chat-item-body">
+            <span class="chat-item-title" data-title></span>
+            <span class="chat-item-sub" data-subtitle></span>
+            <span class="chat-item-preview" data-preview></span>
+          </span>
+          <span class="unread-badge" data-unread hidden>0</span>
+        </a>
+      </li>
+    </template>
+  </aside>
+
+  <section class="chat-main" aria-label="Conversación">
+    {% if active %}
+      <header class="chat-header">
+        <a class="chat-back" href="{% url 'chat:inbox' %}" aria-label="Volver a las conversaciones">←</a>
+        <span class="avatar" aria-hidden="true">{{ active_info.avatar }}</span>
+        <div class="chat-header-text">
+          <h2>{{ active_info.title }}</h2>
+          <a href="{% url 'events:detail' active.event_id %}">{{ active_info.subtitle }}</a>
+        </div>
+        <span class="chat-status" id="chat-status" data-state="connecting" role="status">Conectando…</span>
+      </header>
+      <div class="chat-presence" id="chat-presence" aria-live="polite"></div>
+
+      <div class="chat-messages" id="chat-messages" role="log" aria-live="polite" aria-label="Mensajes" tabindex="0">
+        <button class="btn btn-outline btn-sm chat-older" id="chat-older" type="button" hidden>Cargar mensajes anteriores</button>
+        <p class="chat-empty-note" id="chat-empty-note" hidden>
+          {% if active.is_general %}Todavía no hay mensajes en esta sala. ¡Rompe el hielo!{% else %}Todavía no hay mensajes en esta conversación.{% endif %}
+        </p>
+        <div id="chat-thread"></div>
+      </div>
+      <div class="chat-typing" id="chat-typing" aria-live="polite"></div>
+
+      {% if can_write %}
+        <form class="chat-form" id="chat-form" novalidate>
+          <textarea id="chat-input" rows="1" maxlength="{{ max_length }}" required autocomplete="off" aria-label="Escribe un mensaje" aria-describedby="chat-counter chat-error" placeholder="Escribe un mensaje…"></textarea>
+          <button class="btn btn-primary" id="chat-send" type="submit" disabled>Enviar</button>
+        </form>
+        <div class="chat-form-foot">
+          <span class="chat-error" id="chat-error" role="alert"></span>
+          <span class="chat-counter" id="chat-counter">0/{{ max_length }}</span>
+        </div>
+      {% else %}
+        <p class="chat-readonly">Modo lectura: como administrador puedes revisar esta conversación, pero no escribir en ella.</p>
+        <div class="chat-form-foot"><span class="chat-error" id="chat-error" role="alert"></span></div>
+      {% endif %}
+      {{ chat_config|json_script:"chat-config" }}
+    {% else %}
+      <div class="chat-placeholder">
+        <span class="tile-icon" aria-hidden="true"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a8 8 0 0 1-11.6 7.1L4 20l1-4.6A8 8 0 1 1 21 12Z"/></svg></span>
+        <h2>Elige una conversación</h2>
+        <p>Cada evento tiene una sala general y, si compraste una entrada, un chat privado con su organizador.</p>
+      </div>
+    {% endif %}
+  </section>
+</div>
+{% endblock %}
+
+{% block scripts %}<script src="{% static 'chat/chat.js' %}"></script>{% endblock %}

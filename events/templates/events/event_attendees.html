@@ -8,6 +8,7 @@
     <h1>{{ event.name }}</h1>
     <p>{{ event.start_date|date:"d/m/Y H:i" }} · {{ event.location }}</p>
   </div>
+  <a class="btn btn-outline" href="{% url 'chat:open_general' event.pk %}">Sala del evento</a>
 </div>
 
 <div class="grid-3" style="margin-bottom: 28px;">
@@ -19,7 +20,7 @@
 <div class="table-wrap">
   <table class="list">
     <thead>
-      <tr><th>Asistente</th><th>Comprador</th><th>Estado</th><th>Ingreso</th></tr>
+      <tr><th>Asistente</th><th>Comprador</th><th>Estado</th><th>Ingreso</th><th aria-label="Acciones"></th></tr>
     </thead>
     <tbody>
       {% for ticket in attendees %}
@@ -28,9 +29,14 @@
         <td>{{ ticket.reservation.user.email }}</td>
         <td>{% include 'partials/ticket_status.html' %}</td>
         <td>{% if ticket.is_checked_in %}{{ ticket.checked_in_at|date:"d/m/Y H:i" }}{% else %}—{% endif %}</td>
+        <td class="actions">
+          {% if ticket.status == 'ISSUED' and ticket.reservation.user_id != event.organizer_id %}
+            <a class="btn btn-outline btn-sm" href="{% url 'chat:open_with_buyer' event.pk ticket.reservation.user_id %}">Chat</a>
+          {% endif %}
+        </td>
       </tr>
       {% empty %}
-      <tr><td class="empty" colspan="4">Aún no hay entradas emitidas o registradas para este evento.</td></tr>
+      <tr><td class="empty" colspan="5">Aún no hay entradas emitidas o registradas para este evento.</td></tr>
       {% endfor %}
     </tbody>
   </table>

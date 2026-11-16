@@ -17,6 +17,7 @@ urlpatterns = [
     path('dashboard/', include('custom_admin.urls')),
     path('eventos/', include('events.urls')),
     path('tickets/', include('tickets.urls')),
+    path('mensajes/', include('chat.urls')),
 ]
 
 if settings.DEBUG:

@@ -73,6 +73,26 @@ Accede en tu navegador a: `http://127.0.0.1:8000`
 
 ---
 
+## Chat en tiempo real (WebSockets)
+
+Chat entre los compradores de un evento y su organizador (privado 1 a 1 y sala general
+por evento), con historial en base de datos, usuarios conectados y contador de mensajes
+no leídos en tiempo real. Implementado con Django Channels dentro del monolito.
+
+- Funcionamiento, esquema de datos, protocolo y seguridad: [chat/README.md](chat/README.md)
+- Puesta en marcha y despliegue en Render: [chat/DESPLIEGUE.md](chat/DESPLIEGUE.md)
+
+`python manage.py runserver` ya atiende WebSockets (usa Daphne). En producción el
+comando de inicio es `daphne -b 0.0.0.0 -p $PORT config.asgi:application`.
+
+Pruebas automatizadas de todo el proyecto:
+
+```powershell
+python manage.py test --settings=config.test_settings
+```
+
+---
+
 ## Reglas de Ramas y Git Flow
 
 - **`main`:** Rama protegida con código estable listo para despliegue.

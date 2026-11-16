@@ -1,4 +1,5 @@
 {% extends 'base.html' %}
+{% load chat_tags %}
 {% block title %}{{ event.name }} | Ágora Ticket{% endblock %}
 {% block content %}
 <a class="back-link" href="{{ back_url }}" onclick="if (window.history.length > 1) { history.back(); return false; }">← Volver</a>
@@ -47,6 +48,14 @@
         {% if event.is_free %}Obtener entradas{% else %}Comprar entradas{% endif %}
       </a>
       {% if not user.is_authenticated %}<p class="mb-0" style="margin-top: 12px; font-size: 12.5px; text-align: center;">Te pediremos iniciar sesión para continuar.</p>{% endif %}
+    {% endif %}
+
+    {% chat_event_role event as chat_role %}
+    {% if chat_role %}
+      <div class="form-actions" style="margin-top: 22px; padding-top: 18px;">
+        {% if chat_role == 'buyer' %}<a class="btn btn-outline btn-sm" href="{% url 'chat:open_event' event.pk %}">Chatear con el organizador</a>{% endif %}
+        <a class="btn btn-outline btn-sm" href="{% url 'chat:open_general' event.pk %}">Sala del evento</a>
+      </div>
     {% endif %}
 
     {% if user.is_authenticated %}{% if event.organizer_id == user.id or user.role == 'admin' %}

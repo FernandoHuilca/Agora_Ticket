@@ -83,11 +83,24 @@ TEMPLATES = [
 WSGI_APPLICATION = 'config.wsgi.application'
 ASGI_APPLICATION = 'config.asgi.application'
 
-CHANNEL_LAYERS = {
-    "default": {
-        "BACKEND": "channels.layers.InMemoryChannelLayer"
+# Channel layer de Django Channels: reparte los mensajes entre conexiones WebSocket.
+# Sin REDIS_URL se usa la capa en memoria, válida mientras la app corra en UN solo
+# proceso (desarrollo y un único servicio en Render). Con REDIS_URL se usa Redis,
+# necesario si se escala a varios procesos o instancias.
+REDIS_URL = os.getenv('REDIS_URL', '').strip()
+if REDIS_URL and 'test' not in sys.argv:
+    CHANNEL_LAYERS = {
+        "default": {
+            "BACKEND": "channels_redis.core.RedisChannelLayer",
+            "CONFIG": {"hosts": [REDIS_URL]},
+        }
     }
-}
+else:
+    CHANNEL_LAYERS = {
+        "default": {
+            "BACKEND": "channels.layers.InMemoryChannelLayer"
+        }
+    }
 
 DATABASES = {
     'default': {
