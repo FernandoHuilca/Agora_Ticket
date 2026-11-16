@@ -57,7 +57,7 @@ class CustomAdminDashboardIntegrationTests(TestCase):
 
         self.client.force_login(self.client_user)
         res_client = self.client.get(dashboard_url)
-        self.assertRedirects(res_client, expected_login_url, fetch_redirect_response=False)
+        self.assertRedirects(res_client, '/events/', fetch_redirect_response=False)
 
     def test_business_admin_can_access_dashboard_and_hides_django_admin_link(self):
         """

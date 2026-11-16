@@ -2,6 +2,8 @@
 
 Aplicación web monolítica para la administración de eventos culturales, venta de tickets con validación QR y comunicación en tiempo real mediante WebSockets.
 
+- **Aplicación en Producción (Render):** https://agora-ticket.onrender.com
+
 ## Stack Tecnológico
 
 La explicación del módulo de cuentas está en [users/README.md](users/README.md).
@@ -9,7 +11,9 @@ La explicación del módulo de cuentas está en [users/README.md](users/README.m
 - **Backend y Renderizado:** Python 3.12 + Django
 - **Tiempo Real (WebSockets):** Django Channels + Daphne (ASGI)
 - **Base de Datos:** PostgreSQL (Neon Cloud)
-- **Seguridad:** Hash de contraseñas con Argon2
+- **Almacenamiento Multimedia y Estáticos:** Cloudinary (imágenes y códigos QR) + WhiteNoise
+- **CI/CD y Despliegue:** GitHub Actions + Render
+- **Seguridad:** Hash de contraseñas con Argon2, protección CSRF y control de acceso por roles
 
 ---
 
@@ -21,7 +25,7 @@ Sigue estos pasos en orden para configurar el proyecto en tu computadora:
 Abre tu terminal en la carpeta donde quieras guardar el proyecto y ejecuta:
 
 ```powershell
-git clone [https://github.com/FernandoHuilca/Agora_Ticket.git](https://github.com/FernandoHuilca/Agora_Ticket.git)
+git clone https://github.com/FernandoHuilca/Agora_Ticket.git
 cd Agora_Ticket
 git checkout develop
 ```
@@ -45,12 +49,13 @@ pip install -r requirements.txt
 
 ### Paso 4: Configurar las variables de entorno (`.env`)
 1. En la raíz del proyecto (al mismo nivel que `manage.py`), haz una copia del archivo `.env.example` y renómbrala a **`.env`** (o crea el archivo `.env` desde cero).
-2. Solicita al administrador del equipo las credenciales reales de la base de datos en la nube (Neon) por interno y reemplaza los valores siguiendo esta estructura:
+2. Solicita al administrador del equipo las credenciales reales de la base de datos en la nube (Neon) y Cloudinary por interno y reemplaza los valores siguiendo esta estructura:
 
 ```env
 SECRET_KEY=clave-secreta-desarrollo
 DEBUG=True
 ALLOWED_HOSTS=localhost,127.0.0.1
+CSRF_TRUSTED_ORIGINS=http://localhost:8000,http://127.0.0.1:8000
 
 DB_NAME=agora_ticket_db
 DB_USER=tu_usuario_real_de_neon
@@ -58,6 +63,13 @@ DB_PASSWORD=tu_password_real_de_neon
 DB_HOST=tu_host_real_de_neon.aws.neon.tech
 DB_PORT=5432
 DB_SSLMODE=require
+
+CLOUDINARY_URL=cloudinary://api_key:api_secret@cloud_name
+CLOUDINARY_CLOUD_NAME=tu_cloud_name
+CLOUDINARY_API_KEY=tu_api_key
+CLOUDINARY_API_SECRET=tu_api_secret
+
+STRIPE_WEBHOOK_SECRET=tu_stripe_webhook_secret
 ```
 
 ### Paso 5: Ejecutar las migraciones y levantar el servidor
@@ -90,6 +102,28 @@ Pruebas automatizadas de todo el proyecto:
 ```powershell
 python manage.py test --settings=config.test_settings
 ```
+
+---
+
+## Panel Administrativo, CI/CD y Despliegue en Producción
+
+### 1. Panel de Administración (`/dashboard/`)
+- **Métricas en tiempo real:** Conteo de usuarios activos/bloqueados, administradores, eventos publicados vigentes y boletos vendidos.
+- **Moderación y reportes:** Activación o bloqueo de cuentas de usuario con prevención de auto-bloqueo y exportación de reportes en formato CSV.
+- **Control de acceso:** Protegido mediante `@admin_required` (`custom_admin/views.py`), redirigiendo usuarios no autenticados a `/login/?next=/dashboard/` y usuarios sin rol administrativo a `/events/`.
+
+### 2. Integración Continua (GitHub Actions)
+El flujo `.github/workflows/ci.yml` se ejecuta automáticamente en cada `push` y `Pull Request` validando el estado del proyecto y los permisos de seguridad:
+
+```powershell
+python manage.py check
+python manage.py test custom_admin
+```
+
+### 3. Despliegue en Render
+- **URL pública:** `https://agora-ticket.onrender.com`
+- **Build Command:** `pip install -r requirements.txt && python manage.py collectstatic --no-input && python manage.py migrate`
+- **Start Command:** `daphne -b 0.0.0.0 -p $PORT config.asgi:application`
 
 ---
 
