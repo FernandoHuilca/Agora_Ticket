@@ -1,0 +1,39 @@
+{% extends "base.html" %}
+
+{% block title %}Mis tickets | Ágora Ticket{% endblock %}
+{% block container_class %}medium{% endblock %}
+
+{% block content %}
+  <div class="page-head">
+    <div>
+      <h1>Mis tickets</h1>
+      <p>Abre un ticket para ver su código QR y presentarlo en el ingreso.</p>
+    </div>
+    <a class="btn btn-outline" href="{% url 'home' %}">Explorar cartelera</a>
+  </div>
+
+  {% if tickets %}
+    <div class="table-wrap">
+      {% for ticket in tickets %}
+        <a class="ticket-row" href="{% url 'tickets:tk' ticket.pk %}">
+          <div class="date-block">
+            <span class="month">{{ ticket.event.start_date|date:"M" }}</span>
+            <span class="day">{{ ticket.event.start_date|date:"d" }}</span>
+          </div>
+          <div class="grow">
+            <h3>{{ ticket.event.name }}</h3>
+            <p>{{ ticket.attendee_name }} · {{ ticket.event.start_date|date:"d/m/Y H:i" }} · {{ ticket.event.location }}</p>
+          </div>
+          {% include 'partials/ticket_status.html' %}
+          <span class="link-more">Ver ticket →</span>
+        </a>
+      {% endfor %}
+    </div>
+  {% else %}
+    <div class="card empty-state">
+      <h2>Aún no tienes tickets.</h2>
+      <p>Cuando compres o reserves una entrada aparecerá aquí con su código QR.</p>
+      <a class="btn btn-primary" href="{% url 'home' %}">Ver eventos</a>
+    </div>
+  {% endif %}
+{% endblock %}

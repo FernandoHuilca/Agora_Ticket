@@ -1,0 +1,157 @@
+{% extends "base.html" %}
+
+{% block title %}Comprar tickets | Ágora Ticket{% endblock %}
+
+{% block content %}
+  <a class="back-link" href="{% url 'events:detail' event.pk %}">← Volver al evento</a>
+  <div class="page-head">
+    <div>
+      <span class="eyebrow">{% if event.is_free %}Reserva de entradas{% else %}Checkout{% endif %}</span>
+      <h1>Comprar tickets</h1>
+      <p>{{ event.name }} — {{ event.start_date|date:"d/m/Y H:i" }}</p>
+    </div>
+  </div>
+
+  {% if error or limit_reason %}
+    <div class="alert error" role="alert">{{ error|default:limit_reason }}</div>
+  {% endif %}
+  {% if formset.non_form_errors %}
+    <div class="alert error" role="alert">
+      {{ formset.non_form_errors }}
+    </div>
+  {% endif %}
+
+  {% if max_num > 0 %}
+    <form method="post" id="attendee-form" class="split" data-price="{{ event.price }}" data-free="{{ event.is_free|yesno:'true,false' }}">
+      {% csrf_token %}
+      {{ formset.management_form }}
+
+      <div class="card">
+        <h2 class="card-title">Datos de los asistentes</h2>
+        <p>Agrega un asistente por cada entrada. Puedes llevar hasta {{ max_num }} en esta compra.</p>
+        <div id="attendee-forms">
+          {% for form in formset %}
+            <fieldset class="attendee-row">
+              <legend>Asistente {{ forloop.counter }}</legend>
+              {{ form.non_field_errors }}
+              <div>
+                <label for="{{ form.attendee_name.id_for_label }}">Nombre</label>
+                {{ form.attendee_name }}
+              </div>
+              <div>
+                <label for="{{ form.attendee_email.id_for_label }}">Correo (opcional)</label>
+                {{ form.attendee_email }}
+              </div>
+              <button type="button" class="btn btn-ghost btn-sm remove-attendee">Quitar</button>
+              {{ form.attendee_name.errors }}
+              {{ form.attendee_email.errors }}
+            </fieldset>
+          {% endfor %}
+        </div>
+
+        <template id="empty-attendee">
+          <fieldset class="attendee-row">
+            <legend>Asistente __number__</legend>
+            <div>
+              <label for="{{ formset.empty_form.attendee_name.id_for_label }}">Nombre</label>
+              {{ formset.empty_form.attendee_name }}
+            </div>
+            <div>
+              <label for="{{ formset.empty_form.attendee_email.id_for_label }}">Correo (opcional)</label>
+              {{ formset.empty_form.attendee_email }}
+            </div>
+            <button type="button" class="btn btn-ghost btn-sm remove-attendee">Quitar</button>
+          </fieldset>
+        </template>
+
+        <button type="button" class="btn btn-outline btn-sm" id="add-attendee">+ Agregar asistente</button>
+      </div>
+
+      <aside class="card">
+        <h2 class="card-title">Resumen del pedido</h2>
+        <dl class="meta">
+          <dt>Evento</dt><dd>{{ event.name }}</dd>
+          <dt>Fecha</dt><dd>{{ event.start_date|date:"d/m/Y H:i" }}</dd>
+          <dt>Lugar</dt><dd>{{ event.location }}</dd>
+          <dt>Precio por ticket</dt><dd>{% if event.is_free %}Gratis{% else %}${{ event.price }}{% endif %}</dd>
+          <dt>Cantidad</dt><dd id="purchase-qty">1</dd>
+        </dl>
+        <div class="summary-total"><span>Total</span><span id="purchase-total"></span></div>
+        <button class="btn btn-primary btn-block" type="submit">
+          {% if event.is_free %}Confirmar tickets{% else %}Continuar al pago{% endif %}
+        </button>
+        {% if not event.is_free %}<p class="mb-0" style="margin-top: 12px; font-size: 12.5px; text-align: center;">Serás redirigido a Stripe para completar el pago de forma segura.</p>{% endif %}
+      </aside>
+    </form>
+
+    <script>
+      (function () {
+        const form = document.getElementById("attendee-form");
+        const container = document.getElementById("attendee-forms");
+        const template = document.getElementById("empty-attendee");
+        const totalForms = document.getElementById("id_form-TOTAL_FORMS");
+        const addButton = document.getElementById("add-attendee");
+        const total = document.getElementById("purchase-total");
+        const quantity = document.getElementById("purchase-qty");
+        const maxNum = {{ max_num }};
+        const isFree = form.dataset.free === "true";
+        // El precio llega con el formato regional del servidor (coma decimal en es-ec).
+        const decimalMark = form.dataset.price.includes(",") ? "," : ".";
+        const unitPrice = Number(form.dataset.price.replace(",", "."));
+
+        function rows() {
+          return Array.from(container.querySelectorAll(".attendee-row"));
+        }
+
+        function renumber() {
+          rows().forEach(function (row, index) {
+            row.querySelector("legend").textContent = "Asistente " + (index + 1);
+            row.querySelectorAll("[name], [id], label").forEach(function (element) {
+              ["name", "id", "for"].forEach(function (attribute) {
+                const value = element.getAttribute(attribute);
+                if (value) {
+                  element.setAttribute(attribute, value.replace(/-\d+-/g, "-" + index + "-"));
+                }
+              });
+            });
+            row.querySelector(".remove-attendee").hidden = rows().length <= 1;
+          });
+          totalForms.value = rows().length;
+          addButton.disabled = rows().length >= maxNum;
+          quantity.textContent = rows().length;
+          total.textContent = isFree
+            ? "Gratis"
+            : "$" + (rows().length * unitPrice).toFixed(2).replace(".", decimalMark);
+        }
+
+        addButton.addEventListener("click", function () {
+          if (rows().length >= maxNum) {
+            return;
+          }
+          const index = rows().length;
+          container.insertAdjacentHTML(
+            "beforeend",
+            template.innerHTML.replace(/__prefix__/g, index).replace(/__number__/g, index + 1)
+          );
+          renumber();
+        });
+
+        container.addEventListener("click", function (event) {
+          if (!event.target.classList.contains("remove-attendee") || rows().length <= 1) {
+            return;
+          }
+          event.target.closest(".attendee-row").remove();
+          renumber();
+        });
+
+        renumber();
+      }());
+    </script>
+  {% else %}
+    <div class="card empty-state">
+      <h2>No es posible comprar por ahora</h2>
+      <p>{{ limit_reason|default:"No hay entradas disponibles para este evento." }}</p>
+      <a class="btn btn-outline" href="{% url 'home' %}">Volver a la cartelera</a>
+    </div>
+  {% endif %}
+{% endblock %}

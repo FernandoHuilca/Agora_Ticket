@@ -1,0 +1,13 @@
+{% extends "base.html" %}
+
+{% block title %}Pago cancelado | Ágora Ticket{% endblock %}
+{% block container_class %}narrow{% endblock %}
+
+{% block content %}
+  <div class="card status-card">
+    <span class="tile-icon" aria-hidden="true"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="m9 9 6 6M15 9l-6 6"/></svg></span>
+    <h1>Pago cancelado</h1>
+    <p>La reserva pendiente fue liberada si todavía estaba activa.</p>
+    <a class="btn btn-primary" href="{% url 'events:home' %}">Volver a la cartelera</a>
+  </div>
+{% endblock %}

@@ -1,0 +1,122 @@
+{% extends "base.html" %}
+
+{% block title %}Escanear ticket | Ágora Ticket{% endblock %}
+{% block container_class %}narrow{% endblock %}
+
+{% block content %}
+  <div class="page-head">
+    <div>
+      <h1>Escanear ticket</h1>
+      <p>Elige el evento que atiendes y apunta la cámara al código QR.</p>
+    </div>
+    <a class="btn btn-outline btn-sm" href="{% url 'tickets:validation_history' %}">Ver historial</a>
+  </div>
+
+  <div class="card">
+    {% csrf_token %}
+    <label for="expected-event">Evento que atiendo</label>
+    <select id="expected-event">
+      <option value="">Selecciona un evento</option>
+      {% for event in events %}
+        <option value="{{ event.id }}">{{ event.name }}</option>
+      {% endfor %}
+    </select>
+
+    <div id="qr-reader" aria-label="Cámara para escanear códigos QR"></div>
+    <div id="scan-result" role="status" aria-live="polite"></div>
+    <button class="btn btn-primary btn-block" type="button" id="scan-again" hidden>Escanear otro ticket</button>
+  </div>
+
+  <script src="https://unpkg.com/html5-qrcode" defer></script>
+  <script>
+    window.addEventListener("load", function () {
+      const result = document.getElementById("scan-result");
+      const eventSelect = document.getElementById("expected-event");
+      const scanAgain = document.getElementById("scan-again");
+      const csrfCookie = document.cookie.split("; ").find(function (row) {
+        return row.startsWith("csrftoken=");
+      });
+      const csrfToken = csrfCookie ? decodeURIComponent(csrfCookie.split("=")[1]) : "";
+
+      // Conserva el evento elegido al recargar para escanear el siguiente ticket.
+      const savedEvent = sessionStorage.getItem("scan-event");
+      if (savedEvent && eventSelect.querySelector('option[value="' + savedEvent + '"]')) {
+        eventSelect.value = savedEvent;
+      }
+      eventSelect.addEventListener("change", function () {
+        sessionStorage.setItem("scan-event", eventSelect.value);
+      });
+      scanAgain.addEventListener("click", function () { location.reload(); });
+
+      function showResult(kind, message) {
+        result.dataset.result = kind;
+        result.textContent = message;
+      }
+
+      if (location.protocol !== "https:" && location.hostname !== "localhost" &&
+          location.hostname !== "127.0.0.1") {
+        showResult("error", "La cámara requiere una conexión HTTPS.");
+        return;
+      }
+      if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+        showResult("error", "Este dispositivo no tiene una cámara compatible.");
+        return;
+      }
+      if (!window.Html5QrcodeScanner) {
+        showResult("error", "No se pudo cargar el lector de códigos QR.");
+        return;
+      }
+
+      navigator.mediaDevices.getUserMedia({video: true})
+        .then(function (stream) {
+          stream.getTracks().forEach(function (track) { track.stop(); });
+          const scanner = new Html5QrcodeScanner("qr-reader", {
+            fps: 10,
+            qrbox: {width: 250, height: 250}
+          }, false);
+          scanner.render(function (decodedText) {
+            scanner.clear().catch(function () {});
+            showResult("pending", "Validando ticket...");
+            fetch("{% url 'tickets:validate' %}", {
+              method: "POST",
+              credentials: "same-origin",
+              headers: {
+                "Content-Type": "application/json",
+                "X-CSRFToken": csrfToken
+              },
+              body: JSON.stringify({
+                token: decodedText,
+                expected_event_id: eventSelect.value || null
+              })
+            })
+              .then(function (response) {
+                return response.json().then(function (data) {
+                  return {status: response.status, data: data};
+                });
+              })
+              .then(function (response) {
+                const data = response.data;
+                let message = data.message;
+                if (!message && data.result === "VALID") {
+                  message = "Ticket válido" + (data.ticket ? " — " + data.ticket.attendee_name : "");
+                } else if (!message && data.result === "ALREADY_USED") {
+                  message = "Este ticket ya fue utilizado";
+                }
+                showResult(
+                  response.status === 200 ? "success" : "error",
+                  message || "No se pudo validar el ticket"
+                );
+                scanAgain.hidden = false;
+              })
+              .catch(function () {
+                showResult("error", "No se pudo contactar al servidor.");
+                scanAgain.hidden = false;
+              });
+          }, function () {});
+        })
+        .catch(function () {
+          showResult("error", "No se concedió permiso para usar la cámara.");
+        });
+    });
+  </script>
+{% endblock %}

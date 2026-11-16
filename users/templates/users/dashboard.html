@@ -1,13 +1,81 @@
-{% extends 'users/base.html' %}
+{% extends 'base.html' %}
 {% block title %}Mi panel | Ágora Ticket{% endblock %}
 {% block content %}
-<h1>Hola, {{ user.first_name|default:user.email }}</h1>
-<p>Tu sesión está iniciada.</p>
-<dl>
-  <dt>Nombres</dt><dd>{{ user.first_name|default:'Sin completar' }}</dd>
-  <dt>Apellidos</dt><dd>{{ user.last_name|default:'Sin completar' }}</dd>
-  <dt>Fecha de nacimiento</dt><dd>{{ user.date_of_birth|date:'d/m/Y'|default:'Sin completar' }}</dd>
-  <dt>Correo electrónico</dt><dd>{{ user.email }}</dd>
-  <dt>Rol</dt><dd>{{ user.get_role_display }}</dd>
-</dl>
+<div class="page-head">
+  <div>
+    <span class="eyebrow">Mi panel</span>
+    <h1>Hola, {{ user.first_name|default:user.email }}</h1>
+    <p>Desde aquí accedes a todo lo que puedes hacer en Ágora Ticket.</p>
+  </div>
+  <span class="badge">{{ user.get_role_display }}</span>
+</div>
+
+<div class="grid-3">
+  <a class="card tile" href="{% url 'home' %}">
+    <span class="tile-icon" aria-hidden="true"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/></svg></span>
+    <div><h3>Cartelera</h3><p>Explora los eventos publicados y consigue tus entradas.</p></div>
+  </a>
+  <a class="card tile" href="{% url 'tickets:tickets' %}">
+    <span class="tile-icon" aria-hidden="true"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9a3 3 0 0 0 0 6v3a1 1 0 0 0 1 1h16a1 1 0 0 0 1-1v-3a3 3 0 0 1 0-6V6a1 1 0 0 0-1-1H4a1 1 0 0 0-1 1Z"/><path d="M14 5v14" stroke-dasharray="2 3"/></svg></span>
+    <div><h3>Mis tickets</h3><p>Consulta tus entradas y muestra el código QR en la puerta.</p></div>
+  </a>
+  <a class="card tile" href="{% url 'chat:inbox' %}">
+    <span class="tile-icon" aria-hidden="true"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a8 8 0 0 1-11.6 7.1L4 20l1-4.6A8 8 0 1 1 21 12Z"/></svg></span>
+    <div><h3>Mensajes</h3><p>Chatea en tiempo real con el organizador y los asistentes de tus eventos.</p></div>
+  </a>
+  <a class="card tile" href="{% url 'users:profile' %}">
+    <span class="tile-icon" aria-hidden="true"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/></svg></span>
+    <div><h3>Mi perfil</h3><p>Actualiza tus datos personales y tu correo.</p></div>
+  </a>
+  {% if user.role == 'organizer' or user.role == 'admin' %}
+  <a class="card tile" href="{% url 'events:org_list' %}">
+    <span class="tile-icon" aria-hidden="true"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 6h16M4 12h16M4 18h10"/></svg></span>
+    <div><h3>Mis eventos</h3><p>Gestiona tus eventos, sus inscritos y su estado.</p></div>
+  </a>
+  <a class="card tile" href="{% url 'events:org_new' %}">
+    <span class="tile-icon" aria-hidden="true"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg></span>
+    <div><h3>Crear evento</h3><p>Publica un nuevo evento en la cartelera.</p></div>
+  </a>
+  {% endif %}
+  {% if user.role == 'scanner' or user.role == 'admin' %}
+  <a class="card tile" href="{% url 'tickets:scan' %}">
+    <span class="tile-icon" aria-hidden="true"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 8V5a1 1 0 0 1 1-1h3M16 4h3a1 1 0 0 1 1 1v3M20 16v3a1 1 0 0 1-1 1h-3M8 20H5a1 1 0 0 1-1-1v-3M4 12h16"/></svg></span>
+    <div><h3>Escanear tickets</h3><p>Valida los códigos QR en el ingreso al evento.</p></div>
+  </a>
+  {% endif %}
+  {% if user.role == 'scanner' or user.role == 'organizer' or user.role == 'admin' %}
+  <a class="card tile" href="{% url 'tickets:validation_history' %}">
+    <span class="tile-icon" aria-hidden="true"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg></span>
+    <div><h3>Historial de validaciones</h3><p>Revisa cada intento de ingreso registrado.</p></div>
+  </a>
+  {% endif %}
+  {% if user.role == 'admin' or user.is_staff or user.is_superuser %}
+  <a class="card tile" href="{% url 'custom_admin:dashboard_home' %}">
+    <span class="tile-icon" aria-hidden="true"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/></svg></span>
+    <div><h3>Administración</h3><p>Métricas de la plataforma y control de usuarios.</p></div>
+  </a>
+  {% endif %}
+  {% if user.role == 'admin' %}
+  <a class="card tile" href="{% url 'events:moderation_list' %}">
+    <span class="tile-icon" aria-hidden="true"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3 4 6v6c0 5 3.5 8 8 9 4.5-1 8-4 8-9V6Z"/><path d="m9 12 2 2 4-4"/></svg></span>
+    <div><h3>Moderación de eventos</h3><p>Supervisa y cancela eventos publicados.</p></div>
+  </a>
+  {% endif %}
+</div>
+
+<section class="section">
+  <div class="card medium">
+    <div class="row spread">
+      <h2 class="card-title mb-0">Mi cuenta</h2>
+      <a class="btn btn-outline btn-sm" href="{% url 'users:profile' %}">Editar perfil</a>
+    </div>
+    <dl class="meta mt">
+      <dt>Nombres</dt><dd>{{ user.first_name|default:'Sin completar' }}</dd>
+      <dt>Apellidos</dt><dd>{{ user.last_name|default:'Sin completar' }}</dd>
+      <dt>Fecha de nacimiento</dt><dd>{{ user.date_of_birth|date:'d/m/Y'|default:'Sin completar' }}</dd>
+      <dt>Correo electrónico</dt><dd>{{ user.email }}</dd>
+      <dt>Rol</dt><dd>{{ user.get_role_display }}</dd>
+    </dl>
+  </div>
+</section>
 {% endblock %}

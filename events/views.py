@@ -219,7 +219,7 @@ def event_attendees(request, pk):
     # Si Persona 3 ya migró el modelo Ticket con related_name='tickets', lo consultamos;
     # de lo contrario, devolvemos lista vacía sin romper la vista.
     tickets_qs = getattr(event, 'tickets', None)
-    attendees = tickets_qs.select_related('user').all() if tickets_qs is not None else []
+    attendees = tickets_qs.select_related('reservation__user').all() if tickets_qs is not None else []
     tickets_sold = event.capacity - event.available_tickets
 
     return render(request, 'events/event_attendees.html', {

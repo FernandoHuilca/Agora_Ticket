@@ -1,6 +1,7 @@
 import os
 from pathlib import Path
 from dotenv import load_dotenv
+from django.core.exceptions import ImproperlyConfigured
 import os
 import sys
 from pathlib import Path
@@ -14,6 +15,21 @@ SECRET_KEY = os.getenv('SECRET_KEY', 'clave-temporal-desarrollo-agora-ticket')
 DEBUG = os.getenv('DEBUG', 'True') == 'True'
 ALLOWED_HOSTS = os.getenv('ALLOWED_HOSTS', 'localhost,127.0.0.1').split(',')
 
+STRIPE_SECRET_KEY = os.getenv('STRIPE_SECRET_KEY', '')
+STRIPE_WEBHOOK_SECRET = os.getenv('STRIPE_WEBHOOK_SECRET', '')
+RESERVATION_HOLD_MINUTES = int(os.getenv('RESERVATION_HOLD_MINUTES', '30'))
+TICKETS_MAX_PER_PURCHASE = int(os.getenv('TICKETS_MAX_PER_PURCHASE', '10'))
+SITE_URL = os.getenv('SITE_URL', 'http://127.0.0.1:8000').rstrip('/')
+
+TICKET_QR_SECRET = os.getenv('TICKET_QR_SECRET')
+if not TICKET_QR_SECRET:
+    if DEBUG:
+        TICKET_QR_SECRET = 'dev-only-ticket-qr-secret-change-me'
+    else:
+        raise ImproperlyConfigured(
+            'TICKET_QR_SECRET debe estar configurado cuando DEBUG=False.'
+        )
+
 INSTALLED_APPS = [
     'daphne',
     'django.contrib.admin',
@@ -22,6 +38,7 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+    'django_extensions',
     'channels',
     # Módulos de Ágora Ticket
     'users',
@@ -66,11 +83,24 @@ TEMPLATES = [
 WSGI_APPLICATION = 'config.wsgi.application'
 ASGI_APPLICATION = 'config.asgi.application'
 
-CHANNEL_LAYERS = {
-    "default": {
-        "BACKEND": "channels.layers.InMemoryChannelLayer"
+# Channel layer de Django Channels: reparte los mensajes entre conexiones WebSocket.
+# Sin REDIS_URL se usa la capa en memoria, válida mientras la app corra en UN solo
+# proceso (desarrollo y un único servicio en Render). Con REDIS_URL se usa Redis,
+# necesario si se escala a varios procesos o instancias.
+REDIS_URL = os.getenv('REDIS_URL', '').strip()
+if REDIS_URL and 'test' not in sys.argv:
+    CHANNEL_LAYERS = {
+        "default": {
+            "BACKEND": "channels_redis.core.RedisChannelLayer",
+            "CONFIG": {"hosts": [REDIS_URL]},
+        }
     }
-}
+else:
+    CHANNEL_LAYERS = {
+        "default": {
+            "BACKEND": "channels.layers.InMemoryChannelLayer"
+        }
+    }
 
 DATABASES = {
     'default': {

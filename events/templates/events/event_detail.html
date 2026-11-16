@@ -1,35 +1,70 @@
-<!DOCTYPE html>
-<html lang="es">
-<head>
-    <meta charset="UTF-8">
-    <title>{{ event.name }} — Ágora Ticket</title>
-</head>
-<body>
-    <main>
-        <a href="{{ back_url }}" onclick="if (window.history.length > 1) { history.back(); return false; }">&larr; Volver</a>
-        <h1>{{ event.name }}</h1>
-        {% if event.image %}
-            <img src="{{ event.image.url }}" alt="Afiche de {{ event.name }}" loading="lazy" width="320">
-        {% else %}
-            <div class="placeholder-poster">Sin afiche disponible</div>
-        {% endif %}
-        <p><strong>Estado:</strong> {{ event.get_status_display }}</p>
-        <p><strong>Categoría:</strong> {{ event.get_category_display }}</p>
-        <p><strong>Descripción:</strong> {{ event.description }}</p>
-        <p><strong>Inicio:</strong> {{ event.start_date|date:"d/m/Y H:i" }}</p>
-        <p><strong>Fin:</strong> {{ event.end_date|date:"d/m/Y H:i" }}</p>
-        <p><strong>Ubicación:</strong> {{ event.location }}</p>
-        <p><strong>Cupos:</strong> {{ event.available_tickets }} disponibles de {{ event.capacity }}</p>
+{% extends 'base.html' %}
+{% load chat_tags %}
+{% block title %}{{ event.name }} | Ágora Ticket{% endblock %}
+{% block content %}
+<a class="back-link" href="{{ back_url }}" onclick="if (window.history.length > 1) { history.back(); return false; }">← Volver</a>
 
-        {% if event.is_adult_only %}
-            <p><strong>Restricción:</strong> Evento exclusivo para mayores de 18 años.</p>
-        {% endif %}
+<div class="split">
+  <article>
+    <div class="poster">
+      {% if event.image %}
+        <img src="{{ event.image.url }}" alt="Afiche de {{ event.name }}">
+      {% else %}
+        <div class="placeholder">Sin afiche disponible</div>
+      {% endif %}
+    </div>
 
-        {% if event.is_free %}
-            <p><strong>Modalidad:</strong> Gratuito (Máximo {{ event.max_tickets_per_user }} entradas por persona)</p>
-        {% else %}
-            <p><strong>Precio:</strong> ${{ event.price }}</p>
-        {% endif %}
-    </main>
-</body>
-</html>
+    <div class="row mt">
+      <span class="badge">{{ event.get_category_display }}</span>
+      {% if event.status != 'PUBLISHED' %}{% include 'partials/event_status.html' %}{% endif %}
+      {% if event.is_adult_only %}<span class="badge badge-warning">Solo mayores de 18 años</span>{% endif %}
+    </div>
+    <h1 style="margin-top: 14px;">{{ event.name }}</h1>
+    <p class="prose mt">{{ event.description }}</p>
+  </article>
+
+  <aside class="card">
+    {% if event.is_free %}
+      <div class="price">Gratis</div>
+      <small>Máximo {{ event.max_tickets_per_user }} entradas por persona</small>
+    {% else %}
+      <div class="price">${{ event.price }} <small>por entrada</small></div>
+    {% endif %}
+
+    <dl class="meta" style="margin: 18px 0 22px;">
+      <dt>Inicio</dt><dd>{{ event.start_date|date:"d/m/Y H:i" }}</dd>
+      <dt>Fin</dt><dd>{{ event.end_date|date:"d/m/Y H:i" }}</dd>
+      <dt>Ubicación</dt><dd>{{ event.location }}</dd>
+      <dt>Cupos</dt><dd>{{ event.available_tickets }} disponibles de {{ event.capacity }}</dd>
+      <dt>Estado</dt><dd>{{ event.get_status_display }}</dd>
+    </dl>
+
+    {% if event.status != 'PUBLISHED' %}
+      <div class="alert warning mb-0">Este evento no está disponible para la venta.</div>
+    {% elif event.available_tickets == 0 %}
+      <button class="btn btn-primary btn-block" type="button" disabled>Entradas agotadas</button>
+    {% else %}
+      <a class="btn btn-primary btn-block" href="{% url 'tickets:pay' event.pk %}">
+        {% if event.is_free %}Obtener entradas{% else %}Comprar entradas{% endif %}
+      </a>
+      {% if not user.is_authenticated %}<p class="mb-0" style="margin-top: 12px; font-size: 12.5px; text-align: center;">Te pediremos iniciar sesión para continuar.</p>{% endif %}
+    {% endif %}
+
+    {% chat_event_role event as chat_role %}
+    {% if chat_role %}
+      <div class="form-actions" style="margin-top: 22px; padding-top: 18px;">
+        {% if chat_role == 'buyer' %}<a class="btn btn-outline btn-sm" href="{% url 'chat:open_event' event.pk %}">Chatear con el organizador</a>{% endif %}
+        <a class="btn btn-outline btn-sm" href="{% url 'chat:open_general' event.pk %}">Sala del evento</a>
+      </div>
+    {% endif %}
+
+    {% if user.is_authenticated %}{% if event.organizer_id == user.id or user.role == 'admin' %}
+      <div class="form-actions" style="margin-top: 22px; padding-top: 18px;">
+        <a class="btn btn-outline btn-sm" href="{% url 'events:edit' event.pk %}">Editar</a>
+        <a class="btn btn-outline btn-sm" href="{% url 'events:attendees' event.pk %}">Inscritos</a>
+        {% if event.status != 'CANCELLED' %}<a class="btn btn-danger btn-sm" href="{% url 'events:cancel' event.pk %}">Cancelar evento</a>{% endif %}
+      </div>
+    {% endif %}{% endif %}
+  </aside>
+</div>
+{% endblock %}

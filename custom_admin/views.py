@@ -1,6 +1,8 @@
+from functools import wraps
 from django.shortcuts import render, redirect, get_object_or_404
+from django.urls import reverse
 from django.contrib.auth import get_user_model
-from django.contrib.auth.decorators import user_passes_test
+from django.contrib.auth.views import redirect_to_login
 from django.contrib import messages
 from django.db.models import F, Q, Sum
 from django.utils import timezone
@@ -18,7 +20,19 @@ def es_administrador(user):
     return es_admin_negocio or user.is_staff or user.is_superuser
 
 
-@user_passes_test(es_administrador, login_url='users:login')
+def admin_required(view_func):
+    @wraps(view_func)
+    def _wrapped_view(request, *args, **kwargs):
+        if not request.user.is_authenticated:
+            return redirect_to_login(request.get_full_path(), login_url=reverse('users:login'))
+        if not es_administrador(request.user):
+            messages.warning(request, "No tienes permisos de administrador para acceder al panel.")
+            return redirect('/events/')
+        return view_func(request, *args, **kwargs)
+    return _wrapped_view
+
+
+@admin_required
 def dashboard_home(request):
     # Métricas reales desde la tabla users_user
     total_usuarios = User.objects.count()
@@ -58,7 +72,7 @@ def dashboard_home(request):
     return render(request, 'custom_admin/dashboard.html', context)
 
 
-@user_passes_test(es_administrador, login_url='users:login')
+@admin_required
 def toggle_estado_usuario(request, user_id):
     if request.method == 'POST':
         usuario = get_object_or_404(User, id=user_id)

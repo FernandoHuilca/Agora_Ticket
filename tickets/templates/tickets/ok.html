@@ -1,0 +1,55 @@
+{% extends "base.html" %}
+
+{% block title %}Estado de la reserva | Ágora Ticket{% endblock %}
+{% block container_class %}narrow{% endblock %}
+
+{% block content %}
+  <div class="card status-card">
+    <span class="tile-icon" aria-hidden="true"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9a3 3 0 0 0 0 6v3a1 1 0 0 0 1 1h16a1 1 0 0 0 1-1v-3a3 3 0 0 1 0-6V6a1 1 0 0 0-1-1H4a1 1 0 0 0-1 1Z"/><path d="m9 12 2 2 4-4"/></svg></span>
+    <h1 id="reservation-status">{{ status_heading }}</h1>
+    <p id="reservation-message">{{ status_message }}</p>
+    {% if reservation %}<p><strong>{{ reservation.event.name }}</strong></p>{% endif %}
+    <div class="row" style="justify-content: center;">
+      <a class="btn btn-primary" href="{% url 'tickets:tickets' %}">Ver mis tickets</a>
+      <a class="btn btn-outline" href="{% url 'events:home' %}">Volver a la cartelera</a>
+    </div>
+  </div>
+  {% if poll_reservation %}
+      <script>
+        (function () {
+          const statusUrl = "{% url 'tickets:reservation_status' %}?session_id={{ session_id|urlencode }}";
+          const heading = document.getElementById("reservation-status");
+          const message = document.getElementById("reservation-message");
+          const terminal = ["PAID", "EXPIRED", "CANCELLED"];
+          let attempts = 0;
+          const poll = setInterval(function () {
+            attempts += 1;
+            fetch(statusUrl, {credentials: "same-origin"})
+              .then(function (response) {
+                if (!response.ok) {
+                  throw new Error("No se pudo consultar la reserva");
+                }
+                return response.json();
+              })
+              .then(function (data) {
+                if (!terminal.includes(data.status)) {
+                  return;
+                }
+                clearInterval(poll);
+                const labels = {
+                  PAID: ["Compra confirmada", "Tu reserva fue confirmada. Tus tickets ya están disponibles."],
+                  EXPIRED: ["Reserva expirada", "La reserva ya no está disponible."],
+                  CANCELLED: ["Compra cancelada", "La reserva fue cancelada."]
+                };
+                heading.textContent = labels[data.status][0];
+                message.textContent = labels[data.status][1];
+              })
+              .catch(function () {});
+            if (attempts >= 30) {
+              clearInterval(poll);
+            }
+          }, 2000);
+        }());
+      </script>
+    {% endif %}
+{% endblock %}

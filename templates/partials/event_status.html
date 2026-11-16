@@ -1,0 +1,1 @@
+{% if event.status == 'PUBLISHED' %}<span class="badge badge-success">{{ event.get_status_display }}</span>{% elif event.status == 'CANCELLED' %}<span class="badge badge-danger">{{ event.get_status_display }}</span>{% else %}<span class="badge badge-neutral">{{ event.get_status_display }}</span>{% endif %}
