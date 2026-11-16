@@ -1,0 +1,122 @@
+{% extends "users/base.html" %}
+
+{% block title %}Comprar tickets | Ágora Ticket{% endblock %}
+
+{% block content %}
+  <h1>Comprar tickets</h1>
+  <p>{{ event.name }} — {{ event.start_date|date:"d/m/Y H:i" }}</p>
+  <p>
+    <strong>Precio por ticket:</strong>
+    {% if event.is_free %}Gratis{% else %}${{ event.price }}{% endif %}
+  </p>
+
+  {% if error or limit_reason %}
+    <div class="alert error" role="alert">{{ error|default:limit_reason }}</div>
+  {% endif %}
+  {% if formset.non_form_errors %}
+    <div class="alert error" role="alert">
+      {{ formset.non_form_errors }}
+    </div>
+  {% endif %}
+
+  {% if max_num > 0 %}
+    <form method="post" id="attendee-form" data-price="{{ event.price }}" data-free="{{ event.is_free|yesno:'true,false' }}">
+      {% csrf_token %}
+      {{ formset.management_form }}
+      <div id="attendee-forms">
+        {% for form in formset %}
+          <fieldset class="attendee-row">
+            <legend>Asistente {{ forloop.counter }}</legend>
+            {{ form.non_field_errors }}
+            <label for="{{ form.attendee_name.id_for_label }}">Nombre</label>
+            {{ form.attendee_name }}
+            {{ form.attendee_name.errors }}
+            <label for="{{ form.attendee_email.id_for_label }}">Correo (opcional)</label>
+            {{ form.attendee_email }}
+            {{ form.attendee_email.errors }}
+            <button type="button" class="remove-attendee">Quitar</button>
+          </fieldset>
+        {% endfor %}
+      </div>
+
+      <template id="empty-attendee">
+        <fieldset class="attendee-row">
+          <legend>Asistente __number__</legend>
+          {{ formset.empty_form.non_field_errors }}
+          <label for="{{ formset.empty_form.attendee_name.id_for_label }}">Nombre</label>
+          {{ formset.empty_form.attendee_name }}
+          {{ formset.empty_form.attendee_name.errors }}
+          <label for="{{ formset.empty_form.attendee_email.id_for_label }}">Correo (opcional)</label>
+          {{ formset.empty_form.attendee_email }}
+          {{ formset.empty_form.attendee_email.errors }}
+          <button type="button" class="remove-attendee">Quitar</button>
+        </fieldset>
+      </template>
+
+      <p><strong>Total:</strong> <span id="purchase-total"></span></p>
+      <button type="button" id="add-attendee">Agregar asistente</button>
+      <button type="submit">
+        {% if event.is_free %}Confirmar tickets{% else %}Continuar al pago{% endif %}
+      </button>
+    </form>
+
+    <script>
+      (function () {
+        const form = document.getElementById("attendee-form");
+        const container = document.getElementById("attendee-forms");
+        const template = document.getElementById("empty-attendee");
+        const totalForms = document.getElementById("id_form-TOTAL_FORMS");
+        const addButton = document.getElementById("add-attendee");
+        const total = document.getElementById("purchase-total");
+        const maxNum = {{ max_num }};
+        const isFree = form.dataset.free === "true";
+        const unitPrice = Number(form.dataset.price);
+
+        function rows() {
+          return Array.from(container.querySelectorAll(".attendee-row"));
+        }
+
+        function renumber() {
+          rows().forEach(function (row, index) {
+            row.querySelector("legend").textContent = "Asistente " + (index + 1);
+            row.querySelectorAll("[name], [id], label").forEach(function (element) {
+              ["name", "id", "for"].forEach(function (attribute) {
+                const value = element.getAttribute(attribute);
+                if (value) {
+                  element.setAttribute(attribute, value.replace(/-\d+-/g, "-" + index + "-"));
+                }
+              });
+            });
+          });
+          totalForms.value = rows().length;
+          addButton.disabled = rows().length >= maxNum;
+          total.textContent = isFree
+            ? "Gratis"
+            : "$" + (rows().length * unitPrice).toFixed(2);
+        }
+
+        addButton.addEventListener("click", function () {
+          if (rows().length >= maxNum) {
+            return;
+          }
+          const index = rows().length;
+          container.insertAdjacentHTML(
+            "beforeend",
+            template.innerHTML.replace(/__prefix__/g, index).replace(/__number__/g, index + 1)
+          );
+          renumber();
+        });
+
+        container.addEventListener("click", function (event) {
+          if (!event.target.classList.contains("remove-attendee") || rows().length <= 1) {
+            return;
+          }
+          event.target.closest(".attendee-row").remove();
+          renumber();
+        });
+
+        renumber();
+      }());
+    </script>
+  {% endif %}
+{% endblock %}

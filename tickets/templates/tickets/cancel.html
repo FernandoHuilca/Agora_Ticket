@@ -1,0 +1,9 @@
+{% extends "users/base.html" %}
+
+{% block title %}Pago cancelado | Ágora Ticket{% endblock %}
+
+{% block content %}
+  <h1>Pago cancelado</h1>
+  <p>La reserva pendiente fue liberada si todavía estaba activa.</p>
+  <a class="button" href="{% url 'events:home' %}">Volver a la cartelera</a>
+{% endblock %}

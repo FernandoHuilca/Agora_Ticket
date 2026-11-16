@@ -1,0 +1,59 @@
+{% extends "users/base.html" %}
+
+{% block title %}Historial de validaciones | Ágora Ticket{% endblock %}
+
+{% block content %}
+  <h1>Historial de validaciones</h1>
+  <form method="get">
+    <label for="result">Resultado</label>
+    <select id="result" name="result">
+      <option value="">Todos</option>
+      {% for value, label in result_choices %}
+        <option value="{{ value }}" {% if result_filter == value %}selected{% endif %}>
+          {{ label }}
+        </option>
+      {% endfor %}
+    </select>
+    <button type="submit">Filtrar</button>
+  </form>
+
+  {% if page_obj.object_list %}
+    <table>
+      <thead>
+        <tr>
+          <th>Fecha</th>
+          <th>Resultado</th>
+          <th>Evento</th>
+          <th>Ticket</th>
+          <th>Escaneador</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for validation in page_obj %}
+          <tr>
+            <td>{{ validation.scanned_at|date:"d/m/Y H:i:s" }}</td>
+            <td>{{ validation.get_result_display }}</td>
+            <td>{{ validation.event.name|default:"-" }}</td>
+            <td>{{ validation.ticket.id|default:"-" }}</td>
+            <td>{{ validation.scanner.email }}</td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    <nav aria-label="Paginación">
+      {% if page_obj.has_previous %}
+        <a href="?page={{ page_obj.previous_page_number }}{% if result_filter %}&result={{ result_filter }}{% endif %}">
+          Anterior
+        </a>
+      {% endif %}
+      <span>Página {{ page_obj.number }} de {{ page_obj.paginator.num_pages }}</span>
+      {% if page_obj.has_next %}
+        <a href="?page={{ page_obj.next_page_number }}{% if result_filter %}&result={{ result_filter }}{% endif %}">
+          Siguiente
+        </a>
+      {% endif %}
+    </nav>
+  {% else %}
+    <p>No hay validaciones para mostrar.</p>
+  {% endif %}
+{% endblock %}

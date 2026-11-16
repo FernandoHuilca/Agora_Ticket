@@ -1,0 +1,23 @@
+{% extends "users/base.html" %}
+
+{% block title %}Mis tickets | Ágora Ticket{% endblock %}
+
+{% block content %}
+  <h1>Mis tickets</h1>
+  {% if tickets %}
+    <ul>
+      {% for ticket in tickets %}
+        <li>
+          <a href="{% url 'tickets:tk' ticket.pk %}">
+            {{ ticket.event.name }}
+          </a>
+          — {{ ticket.get_status_display }}
+          — {{ ticket.event.start_date|date:"d/m/Y H:i" }}
+          — {{ ticket.event.location }}
+        </li>
+      {% endfor %}
+    </ul>
+  {% else %}
+    <p>Aún no tienes tickets.</p>
+  {% endif %}
+{% endblock %}
