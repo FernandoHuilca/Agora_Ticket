@@ -91,5 +91,43 @@ Antes de empezar a programar tu módulo, asegúrate de estar en tu rama correspo
 
 ---
 
+## Pruebas con HTTPS y Stripe
+
+### Servidor HTTPS (para la cámara del escáner)
+
+```powershell
+python manage.py runserver_plus --cert-file cert.crt --key-file cert.key 0.0.0.0:8000
+```
+
+Abrir en el celular: `https://<IP-de-tu-PC>:8000/tickets/escanear/` (aceptar la advertencia del certificado autofirmado).
+
+Variables en `.env`:
+
+```
+SITE_URL=https://<IP-de-tu-PC>:8000
+CSRF_TRUSTED_ORIGINS=https://<IP-de-tu-PC>:8000
+```
+
+Agregar `<IP-de-tu-PC>` a `ALLOWED_HOSTS`. Reiniciar el servidor tras cambiar el `.env`.
+
+### Listener de Stripe (otra terminal)
+
+
+```powershell
+npm install -g @stripe/cli@latest
+
+$env:STRIPE_API_KEY = "sk_test_XXXX"; stripe listen --all-snapshot --forward-to https://localhost:8000/tickets/webhooks/stripe/ --skip-verify
+```
+
+- `--skip-verify` es necesario porque el servidor local usa certificado autofirmado.
+- Copiar el `whsec_...` que imprime a `STRIPE_WEBHOOK_SECRET` en `.env` y reiniciar el servidor.
+
+### Tarjeta de prueba valida
+
+`4242 4242 4242 4242`, cualquier fecha futura y cualquier CVC.
+
+
+---
+
 ## Declaración de Uso de IA
 Durante el desarrollo y configuración de este proyecto se utilizaron herramientas de Inteligencia Artificial como apoyo para la resolución de conflictos en Git y estandarización de la documentación técnica.
