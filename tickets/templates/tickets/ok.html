@@ -1,0 +1,47 @@
+{% extends "users/base.html" %}
+
+{% block title %}Estado de la reserva | Ágora Ticket{% endblock %}
+
+{% block content %}
+  <h1 id="reservation-status">{{ status_heading }}</h1>
+  <p id="reservation-message">{{ status_message }}</p>
+  {% if poll_reservation %}
+      <script>
+        (function () {
+          const statusUrl = "{% url 'tickets:reservation_status' %}?session_id={{ session_id|urlencode }}";
+          const heading = document.getElementById("reservation-status");
+          const message = document.getElementById("reservation-message");
+          const terminal = ["PAID", "EXPIRED", "CANCELLED"];
+          let attempts = 0;
+          const poll = setInterval(function () {
+            attempts += 1;
+            fetch(statusUrl, {credentials: "same-origin"})
+              .then(function (response) {
+                if (!response.ok) {
+                  throw new Error("No se pudo consultar la reserva");
+                }
+                return response.json();
+              })
+              .then(function (data) {
+                if (!terminal.includes(data.status)) {
+                  return;
+                }
+                clearInterval(poll);
+                const labels = {
+                  PAID: ["Compra confirmada", "Tu reserva fue confirmada. Tus tickets ya están disponibles."],
+                  EXPIRED: ["Reserva expirada", "La reserva ya no está disponible."],
+                  CANCELLED: ["Compra cancelada", "La reserva fue cancelada."]
+                };
+                heading.textContent = labels[data.status][0];
+                message.textContent = labels[data.status][1];
+              })
+              .catch(function () {});
+            if (attempts >= 30) {
+              clearInterval(poll);
+            }
+          }, 2000);
+        }());
+      </script>
+    {% endif %}
+  <a class="button" href="{% url 'events:home' %}">Volver a la cartelera</a>
+{% endblock %}
