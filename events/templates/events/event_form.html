@@ -1,16 +1,55 @@
-<!DOCTYPE html>
-<html lang="es">
-<head>
-    <meta charset="UTF-8">
-    <title>{% if is_edit %}Editar Evento{% else %}Nuevo Evento{% endif %} — Ágora Ticket</title>
-</head>
-<body>
-    <h1>{% if is_edit %}Editar: {{ event.name }}{% else %}Registrar Nuevo Evento{% endif %}</h1>
-    <form method="post" enctype="multipart/form-data">
-        {% csrf_token %}
-        {{ form.as_p }}
-        <button type="submit">{% if is_edit %}Guardar cambios{% else %}Publicar evento{% endif %}</button>
-        <a href="{% url 'events:org_list' %}">Cancelar</a>
-    </form>
-</body>
-</html>
+{% extends 'base.html' %}
+{% block title %}{% if is_edit %}Editar evento{% else %}Nuevo evento{% endif %} | Ágora Ticket{% endblock %}
+{% block container_class %}medium{% endblock %}
+{% block content %}
+<a class="back-link" href="{% url 'events:org_list' %}">← Volver a mis eventos</a>
+<div class="page-head">
+  <div>
+    <h1>{% if is_edit %}Editar: {{ event.name }}{% else %}Registrar nuevo evento{% endif %}</h1>
+    <p>{% if is_edit %}Actualiza la información del evento.{% else %}El evento se publicará en la cartelera al guardarlo.{% endif %}</p>
+  </div>
+</div>
+
+<form class="card" method="post" enctype="multipart/form-data">
+  {% csrf_token %}
+  {% if form.non_field_errors %}<div class="alert error" role="alert">{{ form.non_field_errors }}</div>{% endif %}
+  <div class="form-grid">
+    {% for field in form %}
+      {% if field.field.widget.input_type == 'checkbox' %}
+        <div>
+          <div class="check">{{ field }}<label for="{{ field.id_for_label }}">{{ field.label }}</label></div>
+          {{ field.errors }}
+        </div>
+      {% else %}
+        <div class="{% if field.name == 'name' or field.name == 'description' or field.name == 'location' or field.name == 'image' %}span-2{% endif %}">
+          <label for="{{ field.id_for_label }}">{{ field.label }}{% if field.field.required %}<span class="required" aria-hidden="true">*</span>{% endif %}</label>
+          {{ field }}
+          {% if field.help_text %}<span class="helptext">{{ field.help_text }}</span>{% endif %}
+          {% if field.name == 'image' %}<span class="helptext">JPG, PNG o WEBP de hasta 2 MB.</span>{% endif %}
+          {{ field.errors }}
+        </div>
+      {% endif %}
+    {% endfor %}
+  </div>
+  <div class="form-actions">
+    <button class="btn btn-primary" type="submit">{% if is_edit %}Guardar cambios{% else %}Publicar evento{% endif %}</button>
+    <a class="btn btn-outline" href="{% url 'events:org_list' %}">Cancelar</a>
+  </div>
+</form>
+{% endblock %}
+{% block scripts %}
+<script>
+  (function () {
+    // Un evento gratuito siempre cuesta $0.00: se bloquea el precio para evitar errores.
+    var free = document.getElementById('id_is_free');
+    var price = document.getElementById('id_price');
+    if (!free || !price) return;
+    function sync() {
+      if (free.checked) { price.value = '0.00'; price.readOnly = true; }
+      else { price.readOnly = false; }
+    }
+    free.addEventListener('change', sync);
+    sync();
+  }());
+</script>
+{% endblock %}

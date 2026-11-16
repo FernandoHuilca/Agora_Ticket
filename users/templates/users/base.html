@@ -1,100 +1,16 @@
-<!doctype html>
-<html lang="es">
-<head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>{% block title %}Ágora Ticket{% endblock %}</title>
-  <style>
-    * { box-sizing: border-box; }
-    body { font-family: system-ui, -apple-system, sans-serif; background: #f8f6f3; color: #202735; margin: 0; line-height: 1.6; }
-    header { min-height: 84px; padding: 20px 36px; display: flex; flex-wrap: wrap; gap: 16px; align-items: center; justify-content: space-between; border-bottom: 1px solid #e5e7ed; background: #fff; }
-    header strong { font-size: 19px; letter-spacing: -.6px; }
-    nav { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; margin-left: auto; }
-    nav a { color: #525b6c; padding: 8px 14px; border-radius: 8px; text-decoration: none; font-size: 14px; font-weight: 500; }
-    nav a:hover, nav a[aria-current="page"] { background: #f6eae7; color: #803b38; }
-    nav a:last-child { border: 1px solid #e4d4cd; }
-    main { max-width: 560px; margin: 48px auto; padding: 36px; background: white; border: 1px solid #e5e7ed; border-radius: 16px; box-shadow: 0 8px 30px #20273505; }
-    h1 { margin: 0 0 8px; font-size: clamp(25px, 5vw, 30px); line-height: 1.25; letter-spacing: -.9px; }
-    p { margin: 0 0 20px; color: #596273; font-size: 14px; }
-    a { color: #883e3b; text-underline-offset: 4px; text-decoration-thickness: 1px; }
-    a:hover { color: #652c2a; }
-    main > form { margin: 28px 0 24px; }
-    main > p:last-child { margin-bottom: 0; }
-    .field { margin-bottom: 4px; }
-    .field-feedback { height: 20px; overflow-y: auto; font-size: 12px; line-height: 1.5; }
-    .field-feedback .errorlist { margin-top: 1px; font-size: 12px; }
-    .field-feedback.has-help { display: grid; height: auto; min-height: 20px; overflow: visible; }
-    .field-feedback.has-help > * { grid-area: 1 / 1; align-self: start; }
-    .field-feedback.has-help.has-error > .helptext { visibility: hidden; }
-    .password-field { position: relative; }
-    .password-field input { padding-right: 52px; }
-    .password-toggle { position: absolute; right: 5px; top: 50%; transform: translateY(-50%); padding: 0; width: 38px; min-height: 36px; background: transparent; color: #667085; border: 0; }
-    .password-toggle:hover { background: #f6eae7; color: #803b38; }
-    .password-toggle[hidden], .eye-slash[hidden] { display: none; }
-    .birth-date { border: 0; padding: 0; margin: 0; min-width: 0; }
-    .birth-date legend { padding: 0; margin-bottom: 7px; font-size: 14px; font-weight: 600; }
-    .date-selects { display: grid; grid-template-columns: .85fr 1.3fr 1fr; gap: 10px; }
-    .date-selects select { min-width: 0; }
-    .date-picker { position: relative; min-width: 0; }
-    .date-native { position: absolute; width: 1px; height: 1px; min-height: 0; padding: 0; opacity: 0; pointer-events: none; }
-    .date-trigger { width: 100%; justify-content: space-between; min-height: 46px; padding: 10px 13px; background: white; color: #202735; border: 1px solid #cdd2dc; font-weight: 400; font-size: 15px; }
-    .date-trigger::after { content: ''; width: 7px; height: 7px; border-right: 1.5px solid #667085; border-bottom: 1.5px solid #667085; transform: rotate(45deg); margin: -4px 0 0 10px; }
-    .date-trigger:hover { background: #faf7f5; color: #202735; border-color: #a65c52; }
-    .date-trigger[aria-expanded="true"] { border-color: #a65c52; box-shadow: 0 0 0 3px #883e3b1a; }
-    .date-trigger.placeholder { color: #667085; }
-    .date-trigger[aria-invalid="true"] { border-color: #bf4141; background: #fffafa; }
-    .date-options { position: absolute; top: calc(100% + 6px); left: 0; right: 0; z-index: 10; max-height: 220px; overflow-y: auto; padding: 5px; background: white; border: 1px solid #e4d4cd; border-radius: 10px; box-shadow: 0 8px 24px #36252218; scrollbar-width: thin; scrollbar-color: #d6bdb3 transparent; }
-    .date-option { display: block; width: 100%; min-height: 36px; padding: 7px 10px; text-align: left; background: white; color: #414957; border: 0; border-radius: 5px; font-size: 14px; font-weight: 400; }
-    .date-option:hover, .date-option:focus { background: #f6eae7; color: #803b38; outline: none; }
-    .date-option[aria-selected="true"] { background: #883e3b; color: white; }
-    label { display: block; font-size: 14px; font-weight: 600; margin-bottom: 7px; }
-    .required { color: #b33131; margin-left: 3px; }
-    input, select { width: 100%; min-height: 46px; padding: 10px 13px; border: 1px solid #cdd2dc; border-radius: 8px; background: #fff; color: #202735; font: inherit; font-size: 15px; transition: border-color .15s, box-shadow .15s; }
-    input:hover, select:hover { border-color: #929aaa; }
-    input:focus, select:focus { outline: none; border-color: #a65c52; box-shadow: 0 0 0 3px #883e3b1a; }
-    input[aria-invalid="true"], select[aria-invalid="true"] { border-color: #bf4141; background: #fffafa; }
-    button, .button { display: inline-flex; align-items: center; justify-content: center; min-height: 46px; padding: 11px 20px; background: #883e3b; color: white; border: 1px solid transparent; border-radius: 8px; font: inherit; font-size: 14px; font-weight: 600; cursor: pointer; text-decoration: none; transition: background .15s; }
-    button:hover, .button:hover { background: #70312f; color: white; }
-    main > form > button { width: 100%; }
-    nav button { min-height: 38px; padding: 7px 13px; background: white; color: #525b6c; border-color: #dce0e8; font-weight: 500; }
-    nav button:hover { background: #f1f2f6; color: #202735; }
-    .helptext { display: block; margin-top: 6px; font-size: 12px; color: #667085; line-height: 1.6; }
-    .helptext:empty { display: none; }
-    .helptext ul { padding-left: 18px; margin: 5px 0 0; }
-    .limit-notice { color: #885314; }
-    .errorlist { list-style: none; padding: 0; margin: 6px 0 0; color: #ac2929; font-size: 13px; }
-    .alert { padding: 12px 15px; border: 1px solid #dce3ed; border-radius: 8px; background: #f2f5fa; color: #3f5675; font-size: 14px; margin-bottom: 22px; }
-    .alert p { margin: 0; color: inherit; }
-    .alert.error { background: #fff3f3; border-color: #f0cece; color: #a12828; }
-    .alert.success { background: #edf8f1; border-color: #cae6d3; color: #24633c; }
-    .alert.warning { background: #fff8e9; border-color: #efdfb7; color: #805614; }
-    .alert .errorlist { margin: 0; color: inherit; }
-    dl { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.5fr); margin: 24px 0; font-size: 14px; }
-    dt, dd { margin: 0; padding: 10px 0; border-bottom: 1px solid #eceef3; overflow-wrap: anywhere; }
-    dt { color: #667085; } dd { font-weight: 500; }
-    :focus-visible { outline: 3px solid #b77763; outline-offset: 3px; }
-    @media (max-width: 600px) { header { padding: 16px; gap: 12px; } nav { gap: 2px; } nav a { padding: 7px 9px; } main { margin: 24px 16px; padding: 26px 22px; } }
-    @media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
-  </style>
-</head>
-<body>
-  <header>
-    <strong>Ágora Ticket</strong>
-    <nav aria-label="Navegación de cuentas">
-      {% if user.is_authenticated %}
-        <a href="{% url 'users:dashboard' %}" {% if request.resolver_match.url_name == 'dashboard' %}aria-current="page"{% endif %}>Mi panel</a>
-        <a href="{% url 'users:profile' %}" {% if request.resolver_match.url_name == 'profile' %}aria-current="page"{% endif %}>Mi perfil</a>
-        <form method="post" action="{% url 'users:logout' %}">{% csrf_token %}<button type="submit">Cerrar sesión</button></form>
-      {% else %}
-        <a href="{% url 'users:login' %}" {% if request.resolver_match.url_name == 'login' %}aria-current="page"{% endif %}>Iniciar sesión</a>
-        <a href="{% url 'users:register' %}" {% if request.resolver_match.url_name == 'register' %}aria-current="page"{% endif %}>Registrarse</a>
-      {% endif %}
-    </nav>
-  </header>
-  <main>
-    {% for message in messages %}<div class="alert {{ message.tags }}" role="status">{{ message }}</div>{% endfor %}
-    {% block content %}{% endblock %}
+{% extends 'base.html' %}
+{# Diseño de tarjeta centrada para las pantallas de cuenta (login, registro, perfil, recuperación). #}
+{% block main %}
+  <main class="page">
+    <div class="container auth-wrap">
+      <div class="card auth-card">
+        {% for message in messages %}<div class="alert {{ message.tags }}" role="status">{{ message }}</div>{% endfor %}
+        {% block content %}{% endblock %}
+      </div>
+    </div>
   </main>
+{% endblock %}
+{% block scripts %}
   <script>
     document.querySelectorAll('.password-toggle').forEach(button => {
       const input = document.getElementById(button.getAttribute('aria-controls'));
@@ -314,5 +230,4 @@
       });
     });
   </script>
-</body>
-</html>
+{% endblock %}

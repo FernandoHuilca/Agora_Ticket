@@ -1,10 +1,19 @@
-{% extends "users/base.html" %}
+{% extends "base.html" %}
 
 {% block title %}Estado de la reserva | Ágora Ticket{% endblock %}
+{% block container_class %}narrow{% endblock %}
 
 {% block content %}
-  <h1 id="reservation-status">{{ status_heading }}</h1>
-  <p id="reservation-message">{{ status_message }}</p>
+  <div class="card status-card">
+    <span class="tile-icon" aria-hidden="true"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9a3 3 0 0 0 0 6v3a1 1 0 0 0 1 1h16a1 1 0 0 0 1-1v-3a3 3 0 0 1 0-6V6a1 1 0 0 0-1-1H4a1 1 0 0 0-1 1Z"/><path d="m9 12 2 2 4-4"/></svg></span>
+    <h1 id="reservation-status">{{ status_heading }}</h1>
+    <p id="reservation-message">{{ status_message }}</p>
+    {% if reservation %}<p><strong>{{ reservation.event.name }}</strong></p>{% endif %}
+    <div class="row" style="justify-content: center;">
+      <a class="btn btn-primary" href="{% url 'tickets:tickets' %}">Ver mis tickets</a>
+      <a class="btn btn-outline" href="{% url 'events:home' %}">Volver a la cartelera</a>
+    </div>
+  </div>
   {% if poll_reservation %}
       <script>
         (function () {
@@ -43,5 +52,4 @@
         }());
       </script>
     {% endif %}
-  <a class="button" href="{% url 'events:home' %}">Volver a la cartelera</a>
 {% endblock %}

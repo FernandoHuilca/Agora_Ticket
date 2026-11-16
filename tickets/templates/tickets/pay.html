@@ -1,14 +1,16 @@
-{% extends "users/base.html" %}
+{% extends "base.html" %}
 
 {% block title %}Comprar tickets | Ágora Ticket{% endblock %}
 
 {% block content %}
-  <h1>Comprar tickets</h1>
-  <p>{{ event.name }} — {{ event.start_date|date:"d/m/Y H:i" }}</p>
-  <p>
-    <strong>Precio por ticket:</strong>
-    {% if event.is_free %}Gratis{% else %}${{ event.price }}{% endif %}
-  </p>
+  <a class="back-link" href="{% url 'events:detail' event.pk %}">← Volver al evento</a>
+  <div class="page-head">
+    <div>
+      <span class="eyebrow">{% if event.is_free %}Reserva de entradas{% else %}Checkout{% endif %}</span>
+      <h1>Comprar tickets</h1>
+      <p>{{ event.name }} — {{ event.start_date|date:"d/m/Y H:i" }}</p>
+    </div>
+  </div>
 
   {% if error or limit_reason %}
     <div class="alert error" role="alert">{{ error|default:limit_reason }}</div>
@@ -20,44 +22,66 @@
   {% endif %}
 
   {% if max_num > 0 %}
-    <form method="post" id="attendee-form" data-price="{{ event.price }}" data-free="{{ event.is_free|yesno:'true,false' }}">
+    <form method="post" id="attendee-form" class="split" data-price="{{ event.price }}" data-free="{{ event.is_free|yesno:'true,false' }}">
       {% csrf_token %}
       {{ formset.management_form }}
-      <div id="attendee-forms">
-        {% for form in formset %}
+
+      <div class="card">
+        <h2 class="card-title">Datos de los asistentes</h2>
+        <p>Agrega un asistente por cada entrada. Puedes llevar hasta {{ max_num }} en esta compra.</p>
+        <div id="attendee-forms">
+          {% for form in formset %}
+            <fieldset class="attendee-row">
+              <legend>Asistente {{ forloop.counter }}</legend>
+              {{ form.non_field_errors }}
+              <div>
+                <label for="{{ form.attendee_name.id_for_label }}">Nombre</label>
+                {{ form.attendee_name }}
+              </div>
+              <div>
+                <label for="{{ form.attendee_email.id_for_label }}">Correo (opcional)</label>
+                {{ form.attendee_email }}
+              </div>
+              <button type="button" class="btn btn-ghost btn-sm remove-attendee">Quitar</button>
+              {{ form.attendee_name.errors }}
+              {{ form.attendee_email.errors }}
+            </fieldset>
+          {% endfor %}
+        </div>
+
+        <template id="empty-attendee">
           <fieldset class="attendee-row">
-            <legend>Asistente {{ forloop.counter }}</legend>
-            {{ form.non_field_errors }}
-            <label for="{{ form.attendee_name.id_for_label }}">Nombre</label>
-            {{ form.attendee_name }}
-            {{ form.attendee_name.errors }}
-            <label for="{{ form.attendee_email.id_for_label }}">Correo (opcional)</label>
-            {{ form.attendee_email }}
-            {{ form.attendee_email.errors }}
-            <button type="button" class="remove-attendee">Quitar</button>
+            <legend>Asistente __number__</legend>
+            <div>
+              <label for="{{ formset.empty_form.attendee_name.id_for_label }}">Nombre</label>
+              {{ formset.empty_form.attendee_name }}
+            </div>
+            <div>
+              <label for="{{ formset.empty_form.attendee_email.id_for_label }}">Correo (opcional)</label>
+              {{ formset.empty_form.attendee_email }}
+            </div>
+            <button type="button" class="btn btn-ghost btn-sm remove-attendee">Quitar</button>
           </fieldset>
-        {% endfor %}
+        </template>
+
+        <button type="button" class="btn btn-outline btn-sm" id="add-attendee">+ Agregar asistente</button>
       </div>
 
-      <template id="empty-attendee">
-        <fieldset class="attendee-row">
-          <legend>Asistente __number__</legend>
-          {{ formset.empty_form.non_field_errors }}
-          <label for="{{ formset.empty_form.attendee_name.id_for_label }}">Nombre</label>
-          {{ formset.empty_form.attendee_name }}
-          {{ formset.empty_form.attendee_name.errors }}
-          <label for="{{ formset.empty_form.attendee_email.id_for_label }}">Correo (opcional)</label>
-          {{ formset.empty_form.attendee_email }}
-          {{ formset.empty_form.attendee_email.errors }}
-          <button type="button" class="remove-attendee">Quitar</button>
-        </fieldset>
-      </template>
-
-      <p><strong>Total:</strong> <span id="purchase-total"></span></p>
-      <button type="button" id="add-attendee">Agregar asistente</button>
-      <button type="submit">
-        {% if event.is_free %}Confirmar tickets{% else %}Continuar al pago{% endif %}
-      </button>
+      <aside class="card">
+        <h2 class="card-title">Resumen del pedido</h2>
+        <dl class="meta">
+          <dt>Evento</dt><dd>{{ event.name }}</dd>
+          <dt>Fecha</dt><dd>{{ event.start_date|date:"d/m/Y H:i" }}</dd>
+          <dt>Lugar</dt><dd>{{ event.location }}</dd>
+          <dt>Precio por ticket</dt><dd>{% if event.is_free %}Gratis{% else %}${{ event.price }}{% endif %}</dd>
+          <dt>Cantidad</dt><dd id="purchase-qty">1</dd>
+        </dl>
+        <div class="summary-total"><span>Total</span><span id="purchase-total"></span></div>
+        <button class="btn btn-primary btn-block" type="submit">
+          {% if event.is_free %}Confirmar tickets{% else %}Continuar al pago{% endif %}
+        </button>
+        {% if not event.is_free %}<p class="mb-0" style="margin-top: 12px; font-size: 12.5px; text-align: center;">Serás redirigido a Stripe para completar el pago de forma segura.</p>{% endif %}
+      </aside>
     </form>
 
     <script>
@@ -68,9 +92,12 @@
         const totalForms = document.getElementById("id_form-TOTAL_FORMS");
         const addButton = document.getElementById("add-attendee");
         const total = document.getElementById("purchase-total");
+        const quantity = document.getElementById("purchase-qty");
         const maxNum = {{ max_num }};
         const isFree = form.dataset.free === "true";
-        const unitPrice = Number(form.dataset.price);
+        // El precio llega con el formato regional del servidor (coma decimal en es-ec).
+        const decimalMark = form.dataset.price.includes(",") ? "," : ".";
+        const unitPrice = Number(form.dataset.price.replace(",", "."));
 
         function rows() {
           return Array.from(container.querySelectorAll(".attendee-row"));
@@ -87,12 +114,14 @@
                 }
               });
             });
+            row.querySelector(".remove-attendee").hidden = rows().length <= 1;
           });
           totalForms.value = rows().length;
           addButton.disabled = rows().length >= maxNum;
+          quantity.textContent = rows().length;
           total.textContent = isFree
             ? "Gratis"
-            : "$" + (rows().length * unitPrice).toFixed(2);
+            : "$" + (rows().length * unitPrice).toFixed(2).replace(".", decimalMark);
         }
 
         addButton.addEventListener("click", function () {
@@ -118,5 +147,11 @@
         renumber();
       }());
     </script>
+  {% else %}
+    <div class="card empty-state">
+      <h2>No es posible comprar por ahora</h2>
+      <p>{{ limit_reason|default:"No hay entradas disponibles para este evento." }}</p>
+      <a class="btn btn-outline" href="{% url 'home' %}">Volver a la cartelera</a>
+    </div>
   {% endif %}
 {% endblock %}

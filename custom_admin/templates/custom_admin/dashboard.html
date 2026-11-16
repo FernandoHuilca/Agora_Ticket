@@ -1,177 +1,151 @@
-{% load static %}
-<!DOCTYPE html>
-<html lang="es">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Panel de Administración | Ágora Ticket</title>
-
-    <!-- Único archivo CSS compartido por todo el equipo -->
-    <link rel="stylesheet" href="{% static 'css/base.css' %}">
-</head>
-<body>
-
-<div class="app-container">
-    <!-- Menú Lateral / Navegación -->
-    <aside class="sidebar">
-        <h2>Ágora Admin</h2>
-        <nav>
-            <ul>
-                <li><a href="{% url 'custom_admin:dashboard_home' %}">Dashboard General</a></li>
-                <li><a href="{% url 'events:moderation_list' %}">Moderación de Eventos</a></li>
-                <li><a href="{% url 'events:home' %}">Cartelera Pública</a></li>
-                {% if request.user.is_superuser %}
-                    <li><a href="/admin/">Panel Técnico Django</a></li>
-                {% endif %}
-            </ul>
-        </nav>
-        <p>Conectado como: <strong>{{ request.user.username|default:request.user.email }}</strong></p>
-    </aside>
-
-    <!-- Contenido Principal -->
-    <main class="main-content">
-        <header class="page-header">
-            <h1>Panel de Control y Métricas</h1>
-            <span class="badge">Base de Datos: Neon Cloud Conectada</span>
-        </header>
-
-        <!-- Mensajes del sistema -->
-        {% if messages %}
-        <div class="messages">
-            {% for message in messages %}
-                <p class="alert">{{ message }}</p>
-            {% endfor %}
-        </div>
-        {% endif %}
-
-        <!-- Tarjetas de Métricas (KPIs) -->
-        <section class="cards-grid">
-            <div class="card">
-                <h3>Total Usuarios</h3>
-                <p class="stat-number">{{ total_usuarios }}</p>
-                <small>{{ usuarios_activos }} activos</small>
-            </div>
-
-            <div class="card">
-                <h3>Usuarios Bloqueados</h3>
-                <p class="stat-number">{{ usuarios_bloqueados }}</p>
-                <small>{{ total_admins }} administradores</small>
-            </div>
-
-            <div class="card">
-                <h3>Eventos Publicados</h3>
-                <p class="stat-number">{{ total_eventos }}</p>
-                <small>Publicados vigentes</small>
-            </div>
-
-            <div class="card">
-                <h3>Tickets Vendidos</h3>
-                <p class="stat-number">{{ tickets_vendidos }}</p>
-                <small>Módulo Tickets QR</small>
-            </div>
-        </section>
-
-        <!-- Tabla de Moderación de Usuarios -->
-        <section class="table-section">
-            <h2>Moderación y Control de Usuarios Recientes</h2>
-            <table class="data-table">
-                <thead>
-                    <tr>
-                        <th>ID</th>
-                        <th>Usuario</th>
-                        <th>Correo</th>
-                        <th>Rol</th>
-                        <th>Estado</th>
-                        <th>Acción</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {% for u in ultimos_usuarios %}
-                    <tr>
-                        <td>#{{ u.id }}</td>
-                        <td>{{ u.username|default:u.email }}</td>
-                        <td>{{ u.email|default:"Sin correo" }}</td>
-                        <td>
-                            {% if u.is_superuser %}
-                                <span class="badge">SuperAdmin</span>
-                            {% elif u.role == 'admin' %}
-                                <span class="badge">Administrador</span>
-                            {% elif u.is_staff %}
-                                <span class="badge">Staff</span>
-                            {% else %}
-                                <span class="badge">{{ u.get_role_display|default:"Cliente" }}</span>
-                            {% endif %}
-                        </td>
-                        <td>
-                            {% if u.is_active %}
-                                <span class="badge">Activo</span>
-                            {% else %}
-                                <span class="badge">Bloqueado</span>
-                            {% endif %}
-                        </td>
-                        <td>
-                            {% if u != request.user %}
-                            <form method="POST" action="{% url 'custom_admin:toggle_estado_usuario' u.id %}">
-                                {% csrf_token %}
-                                {% if u.is_active %}
-                                    <button type="submit" class="btn btn-danger">Bloquear</button>
-                                {% else %}
-                                    <button type="submit" class="btn btn-primary">Activar</button>
-                                {% endif %}
-                            </form>
-                            {% else %}
-                                <span>Tu cuenta</span>
-                            {% endif %}
-                        </td>
-                    </tr>
-                    {% empty %}
-                    <tr>
-                        <td colspan="6">No hay usuarios registrados.</td>
-                    </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
-        </section>
-
-        <!-- Tabla de Moderación de Eventos Publicados Vigentes -->
-        <section class="table-section">
-            <h2>Eventos Publicados Vigentes (<a href="{% url 'events:moderation_list' %}">Ver bandeja completa</a>)</h2>
-            <table class="data-table">
-                <thead>
-                    <tr>
-                        <th>Evento</th>
-                        <th>Organizador</th>
-                        <th>Fecha Inicio</th>
-                        <th>Disponibles / Aforo</th>
-                        <th>Modalidad</th>
-                        <th>Estado</th>
-                        <th>Acciones</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {% for event in eventos_vigentes %}
-                    <tr>
-                        <td><a href="{% url 'events:detail' event.pk %}">{{ event.name }}</a></td>
-                        <td>{{ event.organizer.email }}</td>
-                        <td>{{ event.start_date|date:"d/m/Y H:i" }}</td>
-                        <td>{{ event.available_tickets }} / {{ event.capacity }}</td>
-                        <td>{% if event.is_free %}Gratis{% else %}${{ event.price }}{% endif %}</td>
-                        <td><span class="badge">{{ event.get_status_display }}</span></td>
-                        <td>
-                            <a href="{% url 'events:detail' event.pk %}" class="btn btn-primary">Ver detalles</a>
-                            <a href="{% url 'events:cancel' event.pk %}" class="btn btn-danger">Cancelar evento</a>
-                        </td>
-                    </tr>
-                    {% empty %}
-                    <tr>
-                        <td colspan="7">No hay eventos publicados vigentes en este momento.</td>
-                    </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
-        </section>
-    </main>
+{% extends 'base.html' %}
+{% block title %}Panel de administración | Ágora Ticket{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div>
+    <span class="eyebrow">Administración</span>
+    <h1>Panel de control y métricas</h1>
+    <p>Conectado como <strong>{{ request.user.username|default:request.user.email }}</strong></p>
+  </div>
+  {% if request.user.is_superuser %}
+    <a class="btn btn-outline" href="/admin/">Panel técnico Django</a>
+  {% endif %}
 </div>
+{% include 'partials/admin_tabs.html' with active='dashboard' %}
 
-</body>
-</html>
+<section class="grid-4">
+  <div class="card stat">
+    <span class="label">Total usuarios</span>
+    <p class="stat-number">{{ total_usuarios }}</p>
+    <small>{{ usuarios_activos }} activos</small>
+  </div>
+  <div class="card stat">
+    <span class="label">Usuarios bloqueados</span>
+    <p class="stat-number">{{ usuarios_bloqueados }}</p>
+    <small>{{ total_admins }} administradores</small>
+  </div>
+  <div class="card stat">
+    <span class="label">Eventos publicados</span>
+    <p class="stat-number">{{ total_eventos }}</p>
+    <small>Publicados vigentes</small>
+  </div>
+  <div class="card stat">
+    <span class="label">Tickets vendidos</span>
+    <p class="stat-number">{{ tickets_vendidos }}</p>
+    <small>Módulo Tickets QR</small>
+  </div>
+</section>
+
+<section class="section">
+  <div class="section-head">
+    <div>
+      <h2>Usuarios recientes</h2>
+      <p>Moderación y control de las últimas cuentas registradas.</p>
+    </div>
+  </div>
+  <div class="table-wrap">
+    <table class="list">
+      <thead>
+        <tr>
+          <th>ID</th>
+          <th>Usuario</th>
+          <th>Correo</th>
+          <th>Rol</th>
+          <th>Estado</th>
+          <th aria-label="Acción"></th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for u in ultimos_usuarios %}
+        <tr>
+          <td>#{{ u.id }}</td>
+          <td class="strong">{{ u.get_full_name|default:u.email }}</td>
+          <td>{{ u.email|default:"Sin correo" }}</td>
+          <td>
+            {% if u.is_superuser %}
+              <span class="badge">SuperAdmin</span>
+            {% elif u.role == 'admin' %}
+              <span class="badge">Administrador</span>
+            {% elif u.is_staff %}
+              <span class="badge">Staff</span>
+            {% else %}
+              <span class="badge badge-neutral">{{ u.get_role_display|default:"Cliente" }}</span>
+            {% endif %}
+          </td>
+          <td>
+            {% if u.is_active %}
+              <span class="badge badge-success">Activo</span>
+            {% else %}
+              <span class="badge badge-danger">Bloqueado</span>
+            {% endif %}
+          </td>
+          <td class="actions">
+            {% if u != request.user %}
+            <form method="POST" action="{% url 'custom_admin:toggle_estado_usuario' u.id %}">
+              {% csrf_token %}
+              {% if u.is_active %}
+                <button type="submit" class="btn btn-danger btn-sm">Bloquear</button>
+              {% else %}
+                <button type="submit" class="btn btn-primary btn-sm">Activar</button>
+              {% endif %}
+            </form>
+            {% else %}
+              <span class="muted">Tu cuenta</span>
+            {% endif %}
+          </td>
+        </tr>
+        {% empty %}
+        <tr>
+          <td class="empty" colspan="6">No hay usuarios registrados.</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<section class="section">
+  <div class="section-head">
+    <div>
+      <h2>Eventos publicados vigentes</h2>
+      <p>Los próximos eventos visibles en la cartelera.</p>
+    </div>
+    <a class="link-more" href="{% url 'events:moderation_list' %}">Ver bandeja completa →</a>
+  </div>
+  <div class="table-wrap">
+    <table class="list">
+      <thead>
+        <tr>
+          <th>Fecha inicio</th>
+          <th>Evento</th>
+          <th>Organizador</th>
+          <th>Disponibles / Aforo</th>
+          <th>Modalidad</th>
+          <th>Estado</th>
+          <th aria-label="Acciones"></th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for event in eventos_vigentes %}
+        <tr>
+          <td>{{ event.start_date|date:"d/m/Y H:i" }}</td>
+          <td class="strong"><a href="{% url 'events:detail' event.pk %}">{{ event.name }}</a></td>
+          <td>{{ event.organizer.email }}</td>
+          <td>{{ event.available_tickets }} / {{ event.capacity }}</td>
+          <td>{% if event.is_free %}Gratis{% else %}${{ event.price }}{% endif %}</td>
+          <td>{% include 'partials/event_status.html' %}</td>
+          <td class="actions">
+            <a class="link-more" href="{% url 'events:detail' event.pk %}">Ver detalle →</a>
+            <a class="btn btn-danger btn-sm" href="{% url 'events:cancel' event.pk %}">Cancelar evento</a>
+          </td>
+        </tr>
+        {% empty %}
+        <tr>
+          <td class="empty" colspan="7">No hay eventos publicados vigentes en este momento.</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</section>
+{% endblock %}

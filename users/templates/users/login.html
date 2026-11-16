@@ -7,7 +7,7 @@
   {% csrf_token %}
   {% include "users/form_fields.html" %}
   {% if next %}<input type="hidden" name="next" value="{{ next }}">{% endif %}
-  <button type="submit">Entrar</button>
+  <button class="btn btn-primary btn-block" type="submit">Entrar</button>
 </form>
 <p><a href="{% url 'users:password_reset' %}">¿Olvidaste tu contraseña?</a></p>
 <p>¿No tienes cuenta? <a href="{% url 'users:register' %}">Regístrate</a>.</p>

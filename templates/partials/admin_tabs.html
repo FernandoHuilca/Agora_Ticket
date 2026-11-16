@@ -1,0 +1,6 @@
+<nav class="tabs" aria-label="Secciones de administración">
+  <a href="{% url 'custom_admin:dashboard_home' %}" {% if active == 'dashboard' %}aria-current="page"{% endif %}>Dashboard general</a>
+  <a href="{% url 'events:moderation_list' %}" {% if active == 'moderation' %}aria-current="page"{% endif %}>Moderación de eventos</a>
+  <a href="{% url 'tickets:validation_history' %}">Historial de validaciones</a>
+  <a href="{% url 'home' %}">Cartelera pública</a>
+</nav>

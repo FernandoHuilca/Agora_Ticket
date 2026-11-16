@@ -545,6 +545,9 @@ class EventModerationTests(TestCase):
         self.assertEqual(self.published_event.status, Event.Status.CANCELLED)
         self.assertEqual(self.published_event.moderated_by, self.admin_user)
 
+        # El aviso de cancelación (que nombra al evento) se muestra en la página de destino
+        self.assertContains(self.client.get(response.url), "ha sido cancelado")
+
         # Ya no aparece en la cartelera pública
         res_home = self.client.get(reverse("events:home"))
         self.assertNotContains(res_home, self.published_event.name)

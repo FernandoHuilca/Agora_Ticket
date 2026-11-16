@@ -1,61 +1,110 @@
-<!DOCTYPE html>
-<html lang="es">
-<head>
-    <meta charset="UTF-8">
-    <title>Cartelera Cultural — Ágora Ticket</title>
-</head>
-<body>
-    <header>
-        <h1>Cartelera Casa de la Música</h1>
-    </header>
+{% extends 'base.html' %}
+{% block title %}Cartelera | Ágora Ticket{% endblock %}
 
-    <section>
-        <form method="get" action="{% url 'events:home' %}">
-            {{ filter_form.q }}
-            {{ filter_form.category }}
-            {{ filter_form.date_from }}
-            {{ filter_form.is_free }}
-            <button type="submit">Filtrar</button>
-            <a href="{% url 'events:home' %}">Limpiar</a>
-        </form>
-    </section>
+{% block hero %}
+<div class="container">
+  <section class="hero hero-auditorio">
+    <span class="eyebrow">Casa de la Música · Temporada en curso</span>
+    <h1>Vive la música en vivo, sin filas ni complicaciones</h1>
+    <p>Conciertos, recitales, ópera y más. Elige tu evento, asegura tu entrada y recibe tu ticket con código QR al instante.</p>
+    <a class="btn btn-primary" href="#cartelera">Ver cartelera</a>
+  </section>
+</div>
+{% endblock %}
 
-    <main>
-        {% for event in page_obj %}
-            <article>
-                <h2><a href="{% url 'events:detail' event.pk %}">{{ event.name }}</a></h2>
-                {% if event.image %}
-                    <img src="{{ event.image.url }}" alt="Afiche de {{ event.name }}" loading="lazy" width="320">
-                {% else %}
-                    <div class="placeholder-poster">Sin afiche disponible</div>
-                {% endif %}
-                <p><strong>Categoría:</strong> {{ event.get_category_display }}</p>
-                <p><strong>Fecha:</strong> {{ event.start_date|date:"d/m/Y H:i" }}</p>
-                <p><strong>Sala:</strong> {{ event.location }}</p>
-                <p><strong>Cupos disponibles:</strong> {{ event.available_tickets }} / {{ event.capacity }}</p>
-                <p>
-                    {% if event.is_free %}
-                        <span>Entrada Gratuita</span>
-                    {% else %}
-                        <span>Precio: ${{ event.price }}</span>
-                    {% endif %}
-                </p>
-            </article>
-        {% empty %}
-            <p>No se encontraron eventos disponibles con esos criterios.</p>
-        {% endfor %}
-    </main>
+{% block content %}
+<section id="cartelera">
+  <div class="section-head">
+    <div>
+      <h2>Próximos eventos</h2>
+      <p>{{ page_obj.paginator.count }} evento{{ page_obj.paginator.count|pluralize }} disponible{{ page_obj.paginator.count|pluralize }}</p>
+    </div>
+  </div>
 
-    {% if page_obj.has_other_pages %}
-    <nav aria-label="Paginación de cartelera">
-        {% if page_obj.has_previous %}
-            <a href="?page={{ page_obj.previous_page_number }}&q={{ request.GET.q|default:'' }}&category={{ request.GET.category|default:'' }}">Anterior</a>
-        {% endif %}
-        <span>Página {{ page_obj.number }} de {{ page_obj.paginator.num_pages }}</span>
-        {% if page_obj.has_next %}
-            <a href="?page={{ page_obj.next_page_number }}&q={{ request.GET.q|default:'' }}&category={{ request.GET.category|default:'' }}">Siguiente</a>
-        {% endif %}
-    </nav>
-    {% endif %}
-</body>
-</html>
+  <form class="filters" method="get" action="{{ request.path }}#cartelera" role="search" aria-label="Filtrar eventos">
+    {{ filter_form.q }}
+    {{ filter_form.category }}
+    {{ filter_form.is_free }}
+    <label for="{{ filter_form.date_from.id_for_label }}">Desde</label>
+    {{ filter_form.date_from }}
+    <button class="btn btn-primary btn-sm" type="submit">Filtrar</button>
+    {% if request.GET %}<a class="btn btn-ghost btn-sm" href="{{ request.path }}#cartelera">Limpiar</a>{% endif %}
+  </form>
+
+  <div class="grid-3 mt">
+    {% for event in page_obj %}
+      <a class="event-card" href="{% url 'events:detail' event.pk %}">
+        <div class="event-media">
+          {% if event.image %}
+            <img src="{{ event.image.url }}" alt="Afiche de {{ event.name }}" loading="lazy">
+          {% else %}
+            <div class="placeholder">{{ event.get_category_display }}</div>
+          {% endif %}
+          <span class="badge badge-solid">{{ event.get_category_display }}</span>
+          {% if event.available_tickets == 0 %}
+            <span class="badge badge-danger">Agotado</span>
+          {% elif event.is_free %}
+            <span class="badge badge-success">Entrada gratuita</span>
+          {% else %}
+            <span class="badge badge-solid">${{ event.price }}</span>
+          {% endif %}
+        </div>
+        <div class="event-body">
+          <div class="date-block">
+            <span class="month">{{ event.start_date|date:"M" }}</span>
+            <span class="day">{{ event.start_date|date:"d" }}</span>
+          </div>
+          <div>
+            <h3>{{ event.name }}</h3>
+            <p>{{ event.description|truncatechars:90 }}</p>
+            <div class="event-meta">
+              <span>{{ event.start_date|date:"H:i" }} h</span>
+              <span>{{ event.location }}</span>
+              <span>{{ event.available_tickets }} / {{ event.capacity }} cupos</span>
+              {% if event.is_adult_only %}<span>+18</span>{% endif %}
+            </div>
+          </div>
+        </div>
+      </a>
+    {% empty %}
+      <div class="card empty-state" style="grid-column: 1 / -1;">
+        <h2>Sin resultados</h2>
+        <p>No se encontraron eventos disponibles con esos criterios.</p>
+        <a class="btn btn-outline btn-sm" href="{{ request.path }}#cartelera">Ver todos los eventos</a>
+      </div>
+    {% endfor %}
+  </div>
+
+  {% include 'partials/pagination.html' %}
+</section>
+
+<section class="cta">
+  {% if not user.is_authenticated %}
+    <div>
+      <h2>Crea tu cuenta y asegura tu entrada</h2>
+      <p>Regístrate gratis para reservar, pagar en línea y llevar tus tickets con QR siempre contigo.</p>
+    </div>
+    <div class="row">
+      <a class="btn btn-white" href="{% url 'users:register' %}">Registrarse</a>
+      <a class="btn btn-outline-white" href="{% url 'users:login' %}">Iniciar sesión</a>
+    </div>
+  {% elif user.role == 'organizer' or user.role == 'admin' %}
+    <div>
+      <h2>Publica tu próximo evento</h2>
+      <p>Crea el evento, define el aforo y el precio, y empieza a emitir entradas en minutos.</p>
+    </div>
+    <div class="row">
+      <a class="btn btn-white" href="{% url 'events:org_new' %}">Crear evento</a>
+      <a class="btn btn-outline-white" href="{% url 'events:org_list' %}">Mis eventos</a>
+    </div>
+  {% else %}
+    <div>
+      <h2>Tus entradas, siempre a mano</h2>
+      <p>Revisa tus tickets y presenta el código QR desde tu celular al ingresar.</p>
+    </div>
+    <div class="row">
+      <a class="btn btn-white" href="{% url 'tickets:tickets' %}">Ver mis tickets</a>
+    </div>
+  {% endif %}
+</section>
+{% endblock %}

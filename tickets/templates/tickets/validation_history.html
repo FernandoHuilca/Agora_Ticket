@@ -1,12 +1,21 @@
-{% extends "users/base.html" %}
+{% extends "base.html" %}
 
 {% block title %}Historial de validaciones | Ágora Ticket{% endblock %}
 
 {% block content %}
-  <h1>Historial de validaciones</h1>
-  <form method="get">
+  <div class="page-head">
+    <div>
+      <h1>Historial de validaciones</h1>
+      <p>Cada intento de ingreso registrado al escanear un ticket.</p>
+    </div>
+    {% if user.role == 'scanner' or user.role == 'admin' %}
+      <a class="btn btn-primary" href="{% url 'tickets:scan' %}">Escanear ticket</a>
+    {% endif %}
+  </div>
+
+  <form class="filters" method="get" style="margin-bottom: 20px;">
     <label for="result">Resultado</label>
-    <select id="result" name="result">
+    <select id="result" name="result" onchange="this.form.submit()">
       <option value="">Todos</option>
       {% for value, label in result_choices %}
         <option value="{{ value }}" {% if result_filter == value %}selected{% endif %}>
@@ -14,46 +23,43 @@
         </option>
       {% endfor %}
     </select>
-    <button type="submit">Filtrar</button>
+    <noscript><button class="btn btn-outline btn-sm" type="submit">Filtrar</button></noscript>
   </form>
 
   {% if page_obj.object_list %}
-    <table>
-      <thead>
-        <tr>
-          <th>Fecha</th>
-          <th>Resultado</th>
-          <th>Evento</th>
-          <th>Ticket</th>
-          <th>Escaneador</th>
-        </tr>
-      </thead>
-      <tbody>
-        {% for validation in page_obj %}
+    <div class="table-wrap">
+      <table class="list">
+        <thead>
           <tr>
-            <td>{{ validation.scanned_at|date:"d/m/Y H:i:s" }}</td>
-            <td>{{ validation.get_result_display }}</td>
-            <td>{{ validation.event.name|default:"-" }}</td>
-            <td>{{ validation.ticket.id|default:"-" }}</td>
-            <td>{{ validation.scanner.email }}</td>
+            <th>Fecha</th>
+            <th>Resultado</th>
+            <th>Evento</th>
+            <th>Ticket</th>
+            <th>Escaneador</th>
           </tr>
-        {% endfor %}
-      </tbody>
-    </table>
-    <nav aria-label="Paginación">
-      {% if page_obj.has_previous %}
-        <a href="?page={{ page_obj.previous_page_number }}{% if result_filter %}&result={{ result_filter }}{% endif %}">
-          Anterior
-        </a>
-      {% endif %}
-      <span>Página {{ page_obj.number }} de {{ page_obj.paginator.num_pages }}</span>
-      {% if page_obj.has_next %}
-        <a href="?page={{ page_obj.next_page_number }}{% if result_filter %}&result={{ result_filter }}{% endif %}">
-          Siguiente
-        </a>
-      {% endif %}
-    </nav>
+        </thead>
+        <tbody>
+          {% for validation in page_obj %}
+            <tr>
+              <td>{{ validation.scanned_at|date:"d/m/Y H:i:s" }}</td>
+              <td>
+                {% if validation.result == 'VALID' %}<span class="badge badge-success">{{ validation.get_result_display }}</span>
+                {% elif validation.result == 'ALREADY_USED' %}<span class="badge badge-warning">{{ validation.get_result_display }}</span>
+                {% else %}<span class="badge badge-danger">{{ validation.get_result_display }}</span>{% endif %}
+              </td>
+              <td class="strong">{{ validation.event.name|default:"-" }}</td>
+              <td class="mono">{{ validation.ticket.id|default:"-" }}</td>
+              <td>{{ validation.scanner.email }}</td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% include 'partials/pagination.html' %}
   {% else %}
-    <p>No hay validaciones para mostrar.</p>
+    <div class="card empty-state">
+      <h2>Sin registros</h2>
+      <p>No hay validaciones para mostrar.</p>
+    </div>
   {% endif %}
 {% endblock %}

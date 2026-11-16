@@ -1,0 +1,99 @@
+{% load static %}<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% block title %}Ágora Ticket{% endblock %}</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="{% static 'css/base.css' %}">
+  {% block head %}{% endblock %}
+</head>
+<body>
+{% with ns=request.resolver_match.namespace un=request.resolver_match.url_name %}
+  <header class="navbar" id="navbar">
+    <div class="container navbar-inner">
+      <a class="brand" href="{% url 'home' %}">
+        <span class="brand-mark" aria-hidden="true">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9a3 3 0 0 0 0 6v3a1 1 0 0 0 1 1h16a1 1 0 0 0 1-1v-3a3 3 0 0 1 0-6V6a1 1 0 0 0-1-1H4a1 1 0 0 0-1 1Z"/><path d="M14 5v14" stroke-dasharray="2 3"/></svg>
+        </span>
+        Ágora Ticket
+      </a>
+
+      <button class="icon-btn nav-toggle" type="button" aria-label="Abrir menú" aria-expanded="false" aria-controls="navbar">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M4 7h16M4 12h16M4 17h16"/></svg>
+      </button>
+
+      <nav class="nav-links" aria-label="Navegación principal">
+        <a href="{% url 'home' %}" {% if un == 'home' or ns == 'events' and un == 'detail' %}aria-current="page"{% endif %}>Cartelera</a>
+        {% if user.is_authenticated %}
+          <a href="{% url 'tickets:tickets' %}" {% if ns == 'tickets' and un == 'tickets' or ns == 'tickets' and un == 'tk' %}aria-current="page"{% endif %}>Mis tickets</a>
+          {% if user.role == 'organizer' or user.role == 'admin' %}
+            <a href="{% url 'events:org_list' %}" {% if ns == 'events' and un != 'home' and un != 'detail' and un != 'moderation_list' %}aria-current="page"{% endif %}>Mis eventos</a>
+          {% endif %}
+          {% if user.role == 'scanner' or user.role == 'admin' %}
+            <a href="{% url 'tickets:scan' %}" {% if un == 'scan' %}aria-current="page"{% endif %}>Escanear</a>
+          {% endif %}
+          {% if user.role == 'scanner' or user.role == 'organizer' or user.role == 'admin' %}
+            <a href="{% url 'tickets:validation_history' %}" {% if un == 'validation_history' %}aria-current="page"{% endif %}>Validaciones</a>
+          {% endif %}
+          {% if user.role == 'admin' or user.is_staff or user.is_superuser %}
+            <a href="{% url 'custom_admin:dashboard_home' %}" {% if ns == 'custom_admin' or un == 'moderation_list' %}aria-current="page"{% endif %}>Administración</a>
+          {% endif %}
+        {% endif %}
+      </nav>
+
+      <div class="nav-actions">
+        <a class="icon-btn" href="{% url 'home' %}#cartelera" aria-label="Buscar eventos" title="Buscar eventos">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
+        </a>
+        {% if user.is_authenticated %}
+          <a class="user-chip" href="{% url 'users:dashboard' %}" title="Mi panel">
+            <span class="avatar" aria-hidden="true">{{ user.first_name|default:user.email|first }}</span>
+            {{ user.first_name|default:"Mi panel"|truncatechars:18 }}
+          </a>
+          <form method="post" action="{% url 'users:logout' %}">{% csrf_token %}<button class="btn btn-outline btn-sm" type="submit">Cerrar sesión</button></form>
+        {% else %}
+          <a class="btn btn-ghost btn-sm" href="{% url 'users:login' %}">Iniciar sesión</a>
+          <a class="btn btn-primary btn-sm" href="{% url 'users:register' %}">Registrarse</a>
+        {% endif %}
+      </div>
+    </div>
+  </header>
+{% endwith %}
+
+  {% block hero %}{% endblock %}
+
+  {% block main %}
+  <main class="page">
+    <div class="container {% block container_class %}{% endblock %}">
+      {% for message in messages %}<div class="alert {{ message.tags }}" role="status">{{ message }}</div>{% endfor %}
+      {% block content %}{% endblock %}
+    </div>
+  </main>
+  {% endblock %}
+
+  <footer class="footer">
+    <div class="container">
+      <span>© {% now "Y" %} Ágora Ticket · Casa de la Música</span>
+      <span>
+        <a href="{% url 'home' %}">Cartelera</a>
+        {% if user.is_authenticated %}<a href="{% url 'tickets:tickets' %}">Mis tickets</a><a href="{% url 'users:profile' %}">Mi perfil</a>{% else %}<a href="{% url 'users:login' %}">Iniciar sesión</a>{% endif %}
+      </span>
+    </div>
+  </footer>
+
+  <script>
+    (function () {
+      var navbar = document.getElementById('navbar');
+      var toggle = navbar.querySelector('.nav-toggle');
+      toggle.addEventListener('click', function () {
+        var open = navbar.classList.toggle('open');
+        toggle.setAttribute('aria-expanded', String(open));
+      });
+    }());
+  </script>
+  {% block scripts %}{% endblock %}
+</body>
+</html>

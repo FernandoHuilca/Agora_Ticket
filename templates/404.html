@@ -1,0 +1,8 @@
+{% extends 'users/base.html' %}
+{% block title %}Página no encontrada | Ágora Ticket{% endblock %}
+{% block content %}
+<span class="eyebrow">Error 404</span>
+<h1>Página no encontrada</h1>
+<p>La página que buscas no existe o ya no está disponible.</p>
+<a class="btn btn-primary" href="{% url 'home' %}">Ir a la cartelera</a>
+{% endblock %}

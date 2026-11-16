@@ -1,24 +1,46 @@
-{% extends "users/base.html" %}
+{% extends "base.html" %}
 
 {% block title %}Detalle del ticket | Ágora Ticket{% endblock %}
+{% block container_class %}medium{% endblock %}
 
 {% block content %}
-  <h1>Detalle del ticket</h1>
-  <dl>
-    <dt>Evento</dt>
-    <dd>{{ ticket.event.name }}</dd>
-    <dt>Asistente</dt>
-    <dd>{{ ticket.attendee_name }}</dd>
-    <dt>Estado</dt>
-    <dd>{{ ticket.get_status_display }}</dd>
-    <dt>Fecha</dt>
-    <dd>{{ ticket.event.start_date|date:"d/m/Y H:i" }}</dd>
-    <dt>Lugar</dt>
-    <dd>{{ ticket.event.location }}</dd>
-  </dl>
-  {% if ticket.status == "ISSUED" %}
-    <img src="{% url 'tickets:qr' ticket.pk %}" alt="Código QR del ticket">
+  {% if ticket.reservation.user_id == user.id %}
+    <a class="back-link" href="{% url 'tickets:tickets' %}">← Volver a mis tickets</a>
   {% else %}
-    <p>El código QR estará disponible cuando el ticket sea emitido.</p>
+    <a class="back-link" href="{% url 'events:attendees' ticket.event_id %}">← Volver a los inscritos</a>
   {% endif %}
+
+  <div class="ticket">
+    <div class="ticket-main">
+      <div class="row spread">
+        <span class="eyebrow">Detalle del ticket</span>
+        {% include 'partials/ticket_status.html' %}
+      </div>
+      <h1>{{ ticket.event.name }}</h1>
+      <dl class="meta">
+        <dt>Asistente</dt>
+        <dd>{{ ticket.attendee_name }}</dd>
+        <dt>Estado</dt>
+        <dd>{{ ticket.get_status_display }}</dd>
+        <dt>Fecha</dt>
+        <dd>{{ ticket.event.start_date|date:"d/m/Y H:i" }}</dd>
+        <dt>Lugar</dt>
+        <dd>{{ ticket.event.location }}</dd>
+        {% if ticket.is_checked_in %}
+        <dt>Ingreso registrado</dt>
+        <dd>{{ ticket.checked_in_at|date:"d/m/Y H:i" }}</dd>
+        {% endif %}
+      </dl>
+    </div>
+    <div class="ticket-stub">
+      {% if ticket.status == "ISSUED" and ticket.reservation.user_id == user.id %}
+        <img src="{% url 'tickets:qr' ticket.pk %}" alt="Código QR del ticket" width="220" height="220">
+        <p>Presenta este código en el ingreso. Es válido para una sola entrada.</p>
+      {% elif ticket.status == "ISSUED" %}
+        <p>El código QR solo es visible para la persona que compró el ticket.</p>
+      {% else %}
+        <p>El código QR estará disponible cuando el ticket sea emitido.</p>
+      {% endif %}
+    </div>
+  </div>
 {% endblock %}

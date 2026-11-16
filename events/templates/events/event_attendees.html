@@ -1,20 +1,38 @@
-<!DOCTYPE html>
-<html lang="es">
-<head>
-    <meta charset="UTF-8">
-    <title>Inscritos en {{ event.name }} — Ágora Ticket</title>
-</head>
-<body>
-    <h1>Asistentes registrados: {{ event.name }}</h1>
-    <p><strong>Entradas emitidas:</strong> {{ tickets_sold }} de {{ event.capacity }} (Disponibles: {{ event.available_tickets }})</p>
-    <a href="{% url 'events:org_list' %}">&larr; Volver a mis eventos</a>
+{% extends 'base.html' %}
+{% block title %}Inscritos en {{ event.name }} | Ágora Ticket{% endblock %}
+{% block content %}
+<a class="back-link" href="{% url 'events:org_list' %}">← Volver a mis eventos</a>
+<div class="page-head">
+  <div>
+    <span class="eyebrow">Asistentes registrados</span>
+    <h1>{{ event.name }}</h1>
+    <p>{{ event.start_date|date:"d/m/Y H:i" }} · {{ event.location }}</p>
+  </div>
+</div>
 
-    <ul>
-        {% for ticket in attendees %}
-            <li>{{ ticket.reservation.user.email }} — Estado: {{ ticket.status }}</li>
-        {% empty %}
-            <li>Aún no hay entradas emitidas o registradas para este evento.</li>
-        {% endfor %}
-    </ul>
-</body>
-</html>
+<div class="grid-3" style="margin-bottom: 28px;">
+  <div class="card stat"><span class="label">Entradas emitidas</span><p class="stat-number">{{ tickets_sold }}</p><small>de {{ event.capacity }} de aforo</small></div>
+  <div class="card stat"><span class="label">Disponibles</span><p class="stat-number">{{ event.available_tickets }}</p><small>cupos libres</small></div>
+  <div class="card stat"><span class="label">Estado</span><p class="stat-number">{{ event.get_status_display }}</p><small>del evento</small></div>
+</div>
+
+<div class="table-wrap">
+  <table class="list">
+    <thead>
+      <tr><th>Asistente</th><th>Comprador</th><th>Estado</th><th>Ingreso</th></tr>
+    </thead>
+    <tbody>
+      {% for ticket in attendees %}
+      <tr>
+        <td class="strong">{{ ticket.attendee_name }}</td>
+        <td>{{ ticket.reservation.user.email }}</td>
+        <td>{% include 'partials/ticket_status.html' %}</td>
+        <td>{% if ticket.is_checked_in %}{{ ticket.checked_in_at|date:"d/m/Y H:i" }}{% else %}—{% endif %}</td>
+      </tr>
+      {% empty %}
+      <tr><td class="empty" colspan="4">Aún no hay entradas emitidas o registradas para este evento.</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endblock %}
