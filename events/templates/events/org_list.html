@@ -41,6 +41,7 @@
         <td class="actions">
           <a class="btn btn-outline btn-sm" href="{% url 'events:edit' event.pk %}">Editar</a>
           <a class="btn btn-outline btn-sm" href="{% url 'events:attendees' event.pk %}">Inscritos</a>
+          <a class="btn btn-outline btn-sm" href="{% url 'chat:open_general' event.pk %}">Chat</a>
           {% if event.status != 'CANCELLED' %}
             <a class="btn btn-outline btn-sm" href="{% url 'events:cancel' event.pk %}">Cancelar</a>
           {% endif %}

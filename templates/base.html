@@ -29,6 +29,7 @@
         <a href="{% url 'home' %}" {% if un == 'home' or ns == 'events' and un == 'detail' %}aria-current="page"{% endif %}>Cartelera</a>
         {% if user.is_authenticated %}
           <a href="{% url 'tickets:tickets' %}" {% if ns == 'tickets' and un == 'tickets' or ns == 'tickets' and un == 'tk' %}aria-current="page"{% endif %}>Mis tickets</a>
+          <a href="{% url 'chat:inbox' %}" {% if ns == 'chat' %}aria-current="page"{% endif %}>Mensajes<span class="nav-badge" data-unread-badge hidden></span></a>
           {% if user.role == 'organizer' or user.role == 'admin' %}
             <a href="{% url 'events:org_list' %}" {% if ns == 'events' and un != 'home' and un != 'detail' and un != 'moderation_list' %}aria-current="page"{% endif %}>Mis eventos</a>
           {% endif %}
@@ -79,10 +80,16 @@
       <span>© {% now "Y" %} Ágora Ticket · Casa de la Música</span>
       <span>
         <a href="{% url 'home' %}">Cartelera</a>
-        {% if user.is_authenticated %}<a href="{% url 'tickets:tickets' %}">Mis tickets</a><a href="{% url 'users:profile' %}">Mi perfil</a>{% else %}<a href="{% url 'users:login' %}">Iniciar sesión</a>{% endif %}
+        {% if user.is_authenticated %}<a href="{% url 'tickets:tickets' %}">Mis tickets</a><a href="{% url 'chat:inbox' %}">Mensajes</a><a href="{% url 'users:profile' %}">Mi perfil</a>{% else %}<a href="{% url 'users:login' %}">Iniciar sesión</a>{% endif %}
       </span>
     </div>
   </footer>
+
+  {% if user.is_authenticated %}
+  {# Avisos en tiempo real (WebSocket): contador de no leídos y notificaciones emergentes. #}
+  <div class="toasts" id="toasts" aria-live="polite" data-conversation-url="{% url 'chat:conversation' '00000000-0000-0000-0000-000000000000' %}" data-event-url="{% url 'events:detail' '00000000-0000-0000-0000-000000000000' %}"></div>
+  <script src="{% static 'chat/notifications.js' %}" defer></script>
+  {% endif %}
 
   <script>
     (function () {

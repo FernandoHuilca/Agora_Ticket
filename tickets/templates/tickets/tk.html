@@ -31,6 +31,16 @@
         <dd>{{ ticket.checked_in_at|date:"d/m/Y H:i" }}</dd>
         {% endif %}
       </dl>
+      {% if ticket.status == "ISSUED" and ticket.reservation.user_id == user.id %}
+        <div class="row" style="margin-top: 20px;">
+          {% if ticket.event.organizer_id != user.id %}<a class="btn btn-primary btn-sm" href="{% url 'chat:open_event' ticket.event_id %}">Chatear con el organizador</a>{% endif %}
+          <a class="btn btn-outline btn-sm" href="{% url 'chat:open_general' ticket.event_id %}">Sala del evento</a>
+        </div>
+      {% elif ticket.status == "ISSUED" and ticket.reservation.user_id != ticket.event.organizer_id %}
+        <div class="row" style="margin-top: 20px;">
+          <a class="btn btn-outline btn-sm" href="{% url 'chat:open_with_buyer' ticket.event_id ticket.reservation.user_id %}">Chatear con el comprador</a>
+        </div>
+      {% endif %}
     </div>
     <div class="ticket-stub">
       {% if ticket.status == "ISSUED" and ticket.reservation.user_id == user.id %}
