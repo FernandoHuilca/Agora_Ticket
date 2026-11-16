@@ -41,7 +41,7 @@
    - Un evento con entradas emitidas (`available_tickets < capacity`) no puede ser eliminado (`HTTP 400 Bad Request`).
 5. **Rendimiento e indexación:** Se aplican índices simples sobre `name`, `category`, `start_date` y `status`, además de los índices compuestos `idx_event_status_start` y `idx_event_category_status` para optimizar las consultas de la cartelera.
 
-## Controles de seguridad (Desarrollo de Software Seguro)
+## Controles de seguridad 
 
 - **Prevención de IDOR y enumeración:** La clave primaria de `Event` es un `UUIDv4`. Todas las vistas de modificación (`edit`, `delete`, `cancel`) y consulta privada (`attendees`) verifican en el servidor que `event.organizer_id == request.user.id` (o que el usuario tenga rol `admin`); cualquier intento de manipular la URL desde otra cuenta de organizador lanza `PermissionDenied` (`403 Forbidden`).
 - **Control de acceso por rol (RBAC):** Integrado con el decorador `@role_required` de `users.permissions`.
