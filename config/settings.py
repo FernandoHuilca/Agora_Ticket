@@ -1,15 +1,15 @@
 import os
-from pathlib import Path
-from dotenv import load_dotenv
-from django.core.exceptions import ImproperlyConfigured
-import os
 import sys
 from pathlib import Path
-from dotenv import load_dotenv
 
-load_dotenv()
+from dotenv import load_dotenv
+from django.core.exceptions import ImproperlyConfigured
 
 BASE_DIR = Path(__file__).resolve().parent.parent
+
+# En desarrollo local el .env prevalece sobre valores antiguos de la terminal.
+# En producción se mantiene la prioridad de las variables del alojamiento.
+load_dotenv(BASE_DIR / '.env', override='runserver' in sys.argv)
 
 SECRET_KEY = os.getenv('SECRET_KEY', 'clave-temporal-desarrollo-agora-ticket')
 DEBUG = os.getenv('DEBUG', 'True') == 'True'
@@ -130,21 +130,19 @@ LOGOUT_REDIRECT_URL = 'users:login'
 
 PASSWORD_RESET_TIMEOUT = 60 * 60
 DEFAULT_FROM_EMAIL = os.getenv('DEFAULT_FROM_EMAIL', 'Agora Ticket <no-reply@example.com>')
-MAILERS = {
-    'default': {
-        'BACKEND': os.getenv('EMAIL_BACKEND', 'django.core.mail.backends.console.EmailBackend'),
-    },
-}
-if MAILERS['default']['BACKEND'] == 'django.core.mail.backends.smtp.EmailBackend':
-    MAILERS['default']['OPTIONS'] = {
-        'host': os.getenv('EMAIL_HOST', ''),
-        'port': int(os.getenv('EMAIL_PORT', '587')),
-        'username': os.getenv('EMAIL_HOST_USER', ''),
-        'password': os.getenv('EMAIL_HOST_PASSWORD', ''),
-        'use_tls': os.getenv('EMAIL_USE_TLS', 'True').lower() == 'true',
-        'use_ssl': os.getenv('EMAIL_USE_SSL', 'False').lower() == 'true',
-        'timeout': 15,
-    }
+EMAIL_BACKEND = os.getenv(
+    'EMAIL_BACKEND',
+    'django.core.mail.backends.console.EmailBackend',
+)
+EMAIL_HOST = os.getenv('EMAIL_HOST', '')
+EMAIL_PORT = int(os.getenv('EMAIL_PORT', '587'))
+EMAIL_HOST_USER = os.getenv('EMAIL_HOST_USER', '').strip()
+EMAIL_HOST_PASSWORD = ''.join(
+    os.getenv('EMAIL_HOST_PASSWORD', '').split()
+)
+EMAIL_USE_TLS = os.getenv('EMAIL_USE_TLS', 'True').lower() == 'true'
+EMAIL_USE_SSL = os.getenv('EMAIL_USE_SSL', 'False').lower() == 'true'
+EMAIL_TIMEOUT = int(os.getenv('EMAIL_TIMEOUT', '15'))
 
 # Sesiones persistidas en la base de datos, con cierre al salir del navegador.
 SESSION_ENGINE = 'django.contrib.sessions.backends.db'
